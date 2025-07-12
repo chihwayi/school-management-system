@@ -51,54 +51,48 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        // Check if school is configured before allowing login
-        if (!schoolService.isSchoolConfigured()) {
-            return ResponseEntity.status(412)
-                    .body(Map.of(
-                            "message", "School setup is required before authentication",
-                            "setupRequired", true
-                    ));
+        try {
+            System.out.println("Login attempt for: " + loginRequest.getUsernameOrEmail());
+            
+            // Authenticate the user
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsernameOrEmail(), loginRequest.getPassword()));
+            
+            System.out.println("Authentication successful");
+
+            // Set authentication in security context
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Generate JWT token
+            String token = jwtTokenProvider.generateToken(authentication);
+            System.out.println("JWT token generated");
+
+            // Extract roles from authentication
+            Set<String> roles = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toSet());
+
+            // Get the username from the authentication object
+            String username = authentication.getName();
+
+            // Build response
+            Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put("token", token);
+            responseMap.put("roles", roles);
+            responseMap.put("username", username);
+
+            System.out.println("Login successful for user: " + username);
+            return ResponseEntity.ok(responseMap);
+            
+        } catch (Exception e) {
+            System.err.println("Login error: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Authentication failed");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(401).body(errorResponse);
         }
-
-        // Authenticate the user
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsernameOrEmail(), loginRequest.getPassword()));
-
-        // Set authentication in security context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // Generate JWT token
-        String token = jwtTokenProvider.generateToken(authentication);
-
-        // Extract roles from authentication
-        Set<String> roles = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
-
-        // Get the username from the authentication object
-        String username = authentication.getName();
-
-        // Get school information to return with the response
-        School school = schoolService.getSchoolConfiguration();
-
-        // Build enhanced response with school details
-        Map<String, Object> responseMap = new HashMap<>();
-        responseMap.put("token", token);
-        responseMap.put("roles", roles);
-        responseMap.put("username", username);
-
-        // Add school info to response if available
-        if (school != null) {
-            Map<String, Object> schoolInfo = new HashMap<>();
-            schoolInfo.put("name", school.getName());
-            schoolInfo.put("logoPath", school.getLogoPath());
-            schoolInfo.put("backgroundPath", school.getBackgroundPath());
-            // Add any other school properties you want to expose
-            responseMap.put("school", schoolInfo);
-        }
-
-        // Return the JWT token, roles, and school info in the response body
-        return ResponseEntity.ok(responseMap);
     }
 
     @PostMapping("/register")

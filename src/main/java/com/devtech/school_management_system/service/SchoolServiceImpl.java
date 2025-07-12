@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -28,8 +29,10 @@ public class SchoolServiceImpl implements SchoolService {
 
     @Override
     public boolean isSchoolConfigured() {
-        return schoolRepository.count() > 0;
+        // Alternative: return schoolRepository.existsByConfiguredTrue(); // Or however you want to check
+        return schoolRepository.findAll().stream().anyMatch(School::isConfigured);
     }
+
 
     @Override
     public School getSchoolConfiguration() {
@@ -95,10 +98,11 @@ public class SchoolServiceImpl implements SchoolService {
         school.setContactPhone(dto.getContactPhone());
         school.setAddress(dto.getAddress());
         school.setWebsite(dto.getWebsite());
+        school.setConfigured(true);
     }
 
     private String saveFile(MultipartFile file, String prefix) throws IOException {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         String uniqueFileName = prefix + "_" + UUID.randomUUID().toString() + "_" + fileName;
 
         Path uploadPath = Paths.get(uploadDirectory);
