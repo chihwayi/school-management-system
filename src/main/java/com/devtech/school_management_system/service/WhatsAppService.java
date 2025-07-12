@@ -1,6 +1,5 @@
 package com.devtech.school_management_system.service;
 
-
 import com.devtech.school_management_system.entity.Guardian;
 import com.devtech.school_management_system.entity.Student;
 import org.springframework.stereotype.Service;
@@ -41,9 +40,6 @@ public class WhatsAppService {
     }
 
     private void sendWhatsAppMessage(String phoneNumber, String message) {
-        // Implementation would depend on the WhatsApp Business API provider
-        // This is a placeholder for the actual implementation
-        System.out.println("Sending WhatsApp message to: " + phoneNumber);
-        System.out.println("Message: " + message);
+        // Placeholder for WhatsApp Business API integration
     }
 }

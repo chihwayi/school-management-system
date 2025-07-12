@@ -52,20 +52,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            System.out.println("Login attempt for: " + loginRequest.getUsernameOrEmail());
-            
-            // Authenticate the user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsernameOrEmail(), loginRequest.getPassword()));
-            
-            System.out.println("Authentication successful");
 
-            // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // Generate JWT token
             String token = jwtTokenProvider.generateToken(authentication);
-            System.out.println("JWT token generated");
 
             // Extract roles from authentication
             Set<String> roles = authentication.getAuthorities().stream()
@@ -81,13 +72,10 @@ public class AuthController {
             responseMap.put("roles", roles);
             responseMap.put("username", username);
 
-            System.out.println("Login successful for user: " + username);
+
             return ResponseEntity.ok(responseMap);
             
         } catch (Exception e) {
-            System.err.println("Login error: " + e.getMessage());
-            e.printStackTrace();
-            
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Authentication failed");
             errorResponse.put("message", e.getMessage());

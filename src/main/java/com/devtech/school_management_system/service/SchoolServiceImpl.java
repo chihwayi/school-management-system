@@ -29,11 +29,8 @@ public class SchoolServiceImpl implements SchoolService {
 
     @Override
     public boolean isSchoolConfigured() {
-        // Alternative: return schoolRepository.existsByConfiguredTrue(); // Or however you want to check
         return schoolRepository.findAll().stream().anyMatch(School::isConfigured);
     }
-
-
     @Override
     public School getSchoolConfiguration() {
         return schoolRepository.findAll().stream().findFirst().orElse(null);
@@ -124,8 +121,7 @@ public class SchoolServiceImpl implements SchoolService {
                 Files.deleteIfExists(path);
             }
         } catch (IOException e) {
-            // Log error but don't throw exception
-            System.err.println("Error deleting file: " + filePath);
+            // Ignore file deletion errors
         }
     }
 }
