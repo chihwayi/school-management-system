@@ -40,9 +40,15 @@ public class TeacherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + id));
     }
 
+    @Transactional(readOnly = true)
     public Teacher getTeacherByUsername(String username) {
-        return teacherRepository.findByUserUsername(username)
+        Teacher teacher = teacherRepository.findByUserUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with username: " + username));
+        // Initialize lazy-loaded user to avoid serialization issues
+        if (teacher.getUser() != null) {
+            teacher.getUser().getUsername(); // Force initialization
+        }
+        return teacher;
     }
 
     public Teacher createTeacher(Teacher teacher) {
