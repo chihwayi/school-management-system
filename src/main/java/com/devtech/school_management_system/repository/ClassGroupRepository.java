@@ -25,4 +25,7 @@ public interface ClassGroupRepository extends JpaRepository<ClassGroup, Long> {
     List<ClassGroup> findByFormLevel(@Param("form") String form);
 
     List<ClassGroup> findByLevel(String level);
+
+    @Query("SELECT c FROM ClassGroup c LEFT JOIN FETCH c.classTeacher")
+    List<ClassGroup> findAllWithClassTeachers();
 }

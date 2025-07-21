@@ -1,6 +1,7 @@
 package com.devtech.school_management_system.controller;
 
 import com.devtech.school_management_system.dto.TeacherAssignmentDTO;
+import com.devtech.school_management_system.dto.TeacherSubjectClassDTO;
 import com.devtech.school_management_system.entity.TeacherSubjectClass;
 import com.devtech.school_management_system.service.TeacherAssignmentService;
 import org.springframework.http.MediaType;
@@ -38,8 +39,8 @@ public class TeacherAssignmentController {
 
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
-    public List<TeacherSubjectClass> getTeacherAssignments(@PathVariable Long teacherId) {
-        return teacherAssignmentService.getTeacherAssignments(teacherId);
+    public List<TeacherSubjectClassDTO> getTeacherAssignments(@PathVariable Long teacherId) {
+        return teacherAssignmentService.getTeacherAssignmentsDTO(teacherId);
     }
 
     @GetMapping("/subject/{subjectId}/form/{form}/section/{section}/year/{year}")

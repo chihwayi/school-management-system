@@ -1,5 +1,6 @@
 package com.devtech.school_management_system.service;
 
+import com.devtech.school_management_system.dto.ClassGroupDTO;
 import com.devtech.school_management_system.entity.ClassGroup;
 import com.devtech.school_management_system.entity.Student;
 import com.devtech.school_management_system.entity.Teacher;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -32,7 +34,41 @@ public class ClassGroupService {
     }
 
     public List<ClassGroup> getAllClassGroups() {
-        return classGroupRepository.findAll();
+        return classGroupRepository.findAllWithClassTeachers();
+    }
+    
+    public List<ClassGroupDTO> getAllClassGroupsDTO() {
+        List<ClassGroup> classGroups = classGroupRepository.findAllWithClassTeachers();
+        return classGroups.stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    public ClassGroupDTO convertToDTO(ClassGroup classGroup) {
+        ClassGroupDTO dto = new ClassGroupDTO();
+        dto.setId(classGroup.getId());
+        dto.setForm(classGroup.getForm());
+        dto.setSection(classGroup.getSection());
+        dto.setAcademicYear(classGroup.getAcademicYear());
+        dto.setLevel(classGroup.getLevel());
+        dto.setClassCapacity(classGroup.getClassCapacity());
+        dto.setCreatedAt(classGroup.getCreatedAt());
+        dto.setUpdatedAt(classGroup.getUpdatedAt());
+        
+        if (classGroup.getClassTeacher() != null) {
+            dto.setClassTeacherId(classGroup.getClassTeacher().getId());
+            dto.setClassTeacherName(classGroup.getClassTeacher().getFullName());
+        }
+        
+        // Get student count for this class
+        List<Student> students = studentRepository.findByFormAndSectionAndYear(
+            classGroup.getForm(), 
+            classGroup.getSection(), 
+            classGroup.getAcademicYear()
+        );
+        dto.setStudentCount(students.size());
+        
+        return dto;
     }
 
     public ClassGroup getClassGroupById(Long id) {
@@ -89,15 +125,37 @@ public class ClassGroupService {
 
     public List<Student> getStudentsInClass(Long classGroupId) {
         ClassGroup classGroup = getClassGroupById(classGroupId);
-        return studentRepository.findByFormAndSection(classGroup.getForm(), classGroup.getSection());
+        return studentRepository.findByFormAndSectionAndYear(
+            classGroup.getForm(), 
+            classGroup.getSection(), 
+            classGroup.getAcademicYear()
+        );
     }
 
+    @Autowired
+    private UserService userService;
+    
     public ClassGroup assignClassTeacher(Long classGroupId, Long teacherId) {
         ClassGroup classGroup = getClassGroupById(classGroupId);
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
 
+        // Assign the teacher to the class
         classGroup.setClassTeacher(teacher);
+        
+        // Add CLASS_TEACHER role to the teacher's user
+        if (teacher.getUser() != null) {
+            Set<String> roles = teacher.getUser().getRoles().stream()
+                .map(role -> role.getName().name().replace("ROLE_", ""))
+                .collect(java.util.stream.Collectors.toSet());
+            
+            // Add CLASS_TEACHER role if not already present
+            if (!roles.contains("CLASS_TEACHER")) {
+                roles.add("CLASS_TEACHER");
+                userService.updateRoles(teacher.getUser().getUsername(), roles);
+            }
+        }
+        
         return classGroupRepository.save(classGroup);
     }
 
@@ -136,4 +194,5 @@ public class ClassGroupService {
                 .filter(classGroup -> !isClassAtCapacity(classGroup.getId()))
                 .toList();
     }
+
 }

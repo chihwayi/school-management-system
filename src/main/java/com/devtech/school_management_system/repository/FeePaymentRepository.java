@@ -29,4 +29,13 @@ public interface FeePaymentRepository extends JpaRepository<FeePayment, Long> {
     Long findTotalTransactionsByDate(@Param("date") LocalDate date);
     
     List<FeePayment> findByPaymentDate(LocalDate date);
+    
+    List<FeePayment> findByStudentId(Long studentId);
+    
+    List<FeePayment> findByTermAndAcademicYear(String term, String academicYear);
+    
+    List<FeePayment> findByAcademicYear(String academicYear);
+    
+    @Query("SELECT fp FROM FeePayment fp WHERE fp.paymentDate BETWEEN :startDate AND :endDate")
+    List<FeePayment> findByPaymentDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

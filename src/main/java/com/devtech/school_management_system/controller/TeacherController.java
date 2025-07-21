@@ -1,10 +1,14 @@
 package com.devtech.school_management_system.controller;
 
+import com.devtech.school_management_system.dto.ClassGroupWithStudentsDTO;
+import com.devtech.school_management_system.dto.TeacherAssignmentDTO;
 import com.devtech.school_management_system.dto.TeacherRegistrationDTO;
+import com.devtech.school_management_system.dto.TeacherSubjectClassDTO;
 import com.devtech.school_management_system.entity.ClassGroup;
 import com.devtech.school_management_system.entity.Teacher;
 import com.devtech.school_management_system.entity.TeacherSubjectClass;
 import com.devtech.school_management_system.entity.User;
+import com.devtech.school_management_system.service.TeacherAssignmentService;
 import com.devtech.school_management_system.service.TeacherService;
 import com.devtech.school_management_system.service.UserService;
 import org.springframework.http.MediaType;
@@ -19,17 +23,15 @@ import java.util.List;
 public class TeacherController {
     private final TeacherService teacherService;
     private final UserService userService;
+    private final TeacherAssignmentService teacherAssignmentService;
 
-    public TeacherController(TeacherService teacherService, UserService userService) {
+    public TeacherController(TeacherService teacherService, UserService userService, TeacherAssignmentService teacherAssignmentService) {
         this.teacherService = teacherService;
         this.userService = userService;
+        this.teacherAssignmentService = teacherAssignmentService;
     }
 
-    @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
-    public List<Teacher> getAllTeachers() {
-        return teacherService.getAllTeachers();
-    }
+
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
@@ -76,16 +78,37 @@ public class TeacherController {
 
     @GetMapping("/subjects/assigned")
     @PreAuthorize("hasRole('TEACHER')")
-    public List<TeacherSubjectClass> getAssignedSubjectsAndClasses(Authentication authentication) {
+    public List<TeacherSubjectClassDTO> getAssignedSubjectsAndClasses(Authentication authentication) {
         String username = authentication.getName();
-        return teacherService.getAssignedSubjectsAndClasses(username);
+        return teacherService.getAssignedSubjectsAndClassesDTO(username);
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public List<Teacher> getAllTeachers(@RequestParam(required = false) Boolean includeUser) {
+        if (Boolean.TRUE.equals(includeUser)) {
+            return teacherService.getAllTeachersWithUserDetails();
+        }
+        return teacherService.getAllTeachers();
     }
 
     @GetMapping("/class-teacher-assignments")
     @PreAuthorize("hasRole('TEACHER')")
-    public List<ClassGroup> getSupervisedClasses(Authentication authentication) {
+    public List<ClassGroupWithStudentsDTO> getSupervisedClasses(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getSupervisedClasses(username);
+    }
+
+    @PostMapping("/assignments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public TeacherSubjectClass assignTeacherToSubjectAndClass(@RequestBody TeacherAssignmentDTO assignmentDTO) {
+        return teacherAssignmentService.assignTeacherToSubjectAndClass(
+                assignmentDTO.getTeacherId(),
+                assignmentDTO.getSubjectId(),
+                assignmentDTO.getForm(),
+                assignmentDTO.getSection(),
+                assignmentDTO.getAcademicYear()
+        );
     }
 }
 

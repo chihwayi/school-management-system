@@ -9,6 +9,7 @@ public class StudentRegistrationDTO {
     private String form;
     private String section;
     private String level;
+    private String academicYear;
     private List<Long> subjectIds; // Optional: list of subjects to assign
 
     public StudentRegistrationDTO() {
@@ -22,6 +23,14 @@ public class StudentRegistrationDTO {
         this.section = section;
         this.level = level;
         this.subjectIds = subjectIds;
+    }
+
+    public String getAcademicYear() {
+        return academicYear;
+    }
+
+    public void setAcademicYear(String academicYear) {
+        this.academicYear = academicYear;
     }
 
     public String getFirstName() {

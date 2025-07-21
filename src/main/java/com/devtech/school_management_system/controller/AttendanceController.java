@@ -33,6 +33,10 @@ public class AttendanceController {
     @GetMapping("/date/{date}")
     public List<Attendance> getAttendanceByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        // Validate that the date is not in the future
+        if (date.isAfter(LocalDate.now())) {
+            return List.of(); // Return empty list for future dates
+        }
         return attendanceService.getAttendanceByDate(date);
     }
 }

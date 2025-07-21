@@ -1,6 +1,7 @@
 package com.devtech.school_management_system.entity;
 
 import com.devtech.school_management_system.enums.SubjectCategory;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -33,9 +34,11 @@ public class Subject {
     private String description;
 
     @OneToMany(mappedBy = "subject", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private Set<StudentSubject> studentSubjects = new HashSet<>();
 
     @OneToMany(mappedBy = "subject", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private Set<TeacherSubjectClass> teacherAssignments = new HashSet<>();
 
     @CreationTimestamp

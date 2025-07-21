@@ -2,6 +2,7 @@ package com.devtech.school_management_system.controller;
 
 import com.devtech.school_management_system.dto.*;
 import com.devtech.school_management_system.entity.FeePayment;
+import com.devtech.school_management_system.entity.Student;
 import com.devtech.school_management_system.service.FeePaymentService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
@@ -56,5 +57,11 @@ public class FeePaymentController {
     public List<FeePayment> getPaymentsByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return feePaymentService.getPaymentsByDate(date);
+    }
+    
+    @GetMapping("/search-students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public List<Student> searchStudentsByName(@RequestParam String query) {
+        return feePaymentService.searchStudentsByName(query);
     }
 }

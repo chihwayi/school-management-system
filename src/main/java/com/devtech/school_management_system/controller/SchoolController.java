@@ -27,17 +27,27 @@ public class SchoolController {
 
     @GetMapping("/config")
     public ResponseEntity<?> getSchoolConfig() {
-        boolean isConfigured = schoolService.isSchoolConfigured();
+        try {
+            boolean isConfigured = schoolService.isSchoolConfigured();
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("configured", isConfigured);
+            Map<String, Object> response = new HashMap<>();
+            response.put("configured", isConfigured);
 
-        if (isConfigured) {
-            School school = schoolService.getSchoolConfiguration();
-            response.put("school", school);
+            if (isConfigured) {
+                School school = schoolService.getSchoolConfiguration();
+                response.put("school", school);
+            } else {
+                response.put("school", null);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Handle case where no school exists in database
+            Map<String, Object> response = new HashMap<>();
+            response.put("configured", false);
+            response.put("school", null);
+            return ResponseEntity.ok(response);
         }
-
-        return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "/setup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

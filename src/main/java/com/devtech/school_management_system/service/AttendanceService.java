@@ -52,6 +52,17 @@ public class AttendanceService {
             attendance.setDate(date);
             attendance.setPresent(present);
         }
+        
+        // Set the markedBy field using the currently authenticated user
+        // This is needed to show who marked the attendance
+        org.springframework.security.core.Authentication auth = 
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() != null && auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
+            String username = ((org.springframework.security.core.userdetails.UserDetails) auth.getPrincipal()).getUsername();
+            attendance.setMarkedBy(username);
+        } else if (auth != null) {
+            attendance.setMarkedBy(auth.getName());
+        }
 
         Attendance savedAttendance = attendanceRepository.save(attendance);
 
@@ -70,6 +81,11 @@ public class AttendanceService {
     }
 
     public List<Attendance> getAttendanceByDate(LocalDate date) {
+        // Check if the date is in the future
+        if (date.isAfter(LocalDate.now())) {
+            // Return empty list for future dates instead of throwing an error
+            return List.of();
+        }
         return attendanceRepository.findByDate(date);
     }
 

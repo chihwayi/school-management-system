@@ -19,7 +19,8 @@ public class SchoolConfigurationFilter extends OncePerRequestFilter {
 
     private static final List<String> SETUP_ENDPOINTS = Arrays.asList(
             "/api/school/config",
-            "/api/school/setup"
+            "/api/school/setup",
+            "/api/uploads/"
     );
 
     private static final List<String> AUTH_ENDPOINTS = Arrays.asList(
@@ -81,6 +82,9 @@ public class SchoolConfigurationFilter extends OncePerRequestFilter {
         return path.startsWith("/assets/") ||
                 path.startsWith("/css/") ||
                 path.startsWith("/js/") ||
-                path.equals("/favicon.ico");
+                path.startsWith("/api/uploads/") ||
+                path.equals("/favicon.ico") ||
+                path.equals("/") ||
+                path.startsWith("/setup");
     }
 }

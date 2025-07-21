@@ -22,6 +22,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByFormAndSectionAndYear(@Param("form") String form,
                                               @Param("section") String section,
                                               @Param("year") String year);
+                                              
+    List<Student> findByFormAndSectionAndAcademicYear(String form, String section, String academicYear);
 
     List<Student> findByLevel(String level);
 

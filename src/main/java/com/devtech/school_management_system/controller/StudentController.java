@@ -7,6 +7,7 @@ import com.devtech.school_management_system.dto.StudentRegistrationDTO;
 import com.devtech.school_management_system.dto.StudentUpdateDTO;
 import com.devtech.school_management_system.dto.PromotionToALevelDTO;
 import com.devtech.school_management_system.service.StudentService;
+import com.devtech.school_management_system.repository.StudentRepository;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,9 +25,11 @@ import java.util.List;
 @RequestMapping(value = "/api/students", produces = MediaType.APPLICATION_JSON_VALUE)
 public class StudentController {
     private final StudentService studentService;
+    private final StudentRepository studentRepository;
 
-    public StudentController(StudentService studentService) {
+    public StudentController(StudentService studentService, StudentRepository studentRepository) {
         this.studentService = studentService;
+        this.studentRepository = studentRepository;
     }
 
     @GetMapping("/all")
@@ -50,7 +53,8 @@ public class StudentController {
                 registrationDTO.getStudentId(),
                 registrationDTO.getForm(),
                 registrationDTO.getSection(),
-                registrationDTO.getLevel()
+                registrationDTO.getLevel(),
+                registrationDTO.getAcademicYear()
         );
     }
 
@@ -105,6 +109,23 @@ public class StudentController {
                 promotionDTO.getForm(),
                 promotionDTO.getSection()
         );
+    }
+    
+    @PostMapping("/fix-academic-years")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String fixAcademicYears() {
+        List<Student> students = studentRepository.findAll();
+        int updatedCount = 0;
+        
+        for (Student student : students) {
+            if ("2024-2025".equals(student.getAcademicYear())) {
+                student.setAcademicYear("2025");
+                studentRepository.save(student);
+                updatedCount++;
+            }
+        }
+        
+        return "Fixed academic years for " + updatedCount + " students";
     }
 }
 

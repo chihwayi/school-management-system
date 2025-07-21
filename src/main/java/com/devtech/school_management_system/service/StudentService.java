@@ -42,7 +42,7 @@ public class StudentService {
     }
 
     public Student createStudent(String firstName, String lastName, String studentId,
-                                 String form, String section, String level) {
+                                 String form, String section, String level, String academicYear) {
         Student student = new Student();
         student.setFirstName(firstName);
         student.setLastName(lastName);
@@ -50,6 +50,17 @@ public class StudentService {
         student.setForm(form);
         student.setSection(section);
         student.setLevel(level);
+        
+        // Standardize academic year format
+        if (academicYear != null && academicYear.contains("-")) {
+            // If format is "2024-2025", use just the end year "2025"
+            String[] parts = academicYear.split("-");
+            if (parts.length > 1) {
+                academicYear = parts[1].trim();
+            }
+        }
+        student.setAcademicYear(academicYear);
+        
         student.setCreatedAt(LocalDateTime.now());
         student.setUpdatedAt(LocalDateTime.now());
 

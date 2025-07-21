@@ -1,5 +1,6 @@
 package com.devtech.school_management_system.service;
 
+import com.devtech.school_management_system.dto.TeacherSubjectClassDTO;
 import com.devtech.school_management_system.entity.Subject;
 import com.devtech.school_management_system.entity.Teacher;
 import com.devtech.school_management_system.entity.TeacherSubjectClass;
@@ -60,6 +61,23 @@ public class TeacherAssignmentService {
 
     public List<TeacherSubjectClass> getTeacherAssignments(Long teacherId) {
         return teacherSubjectClassRepository.findByTeacherId(teacherId);
+    }
+
+    public List<TeacherSubjectClassDTO> getTeacherAssignmentsDTO(Long teacherId) {
+        List<TeacherSubjectClass> assignments = teacherSubjectClassRepository.findByTeacherId(teacherId);
+        return assignments.stream()
+                .map(tsc -> new TeacherSubjectClassDTO(
+                        tsc.getId(),
+                        tsc.getTeacher().getId(),
+                        tsc.getTeacher().getFullName(),
+                        tsc.getSubject().getId(),
+                        tsc.getSubject().getName(),
+                        tsc.getSubject().getCode(),
+                        tsc.getForm(),
+                        tsc.getSection(),
+                        tsc.getAcademicYear()
+                ))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public TeacherSubjectClass getAssignmentForClass(Long subjectId, String form, String section, String year) {

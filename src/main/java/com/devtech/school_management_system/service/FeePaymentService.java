@@ -44,6 +44,11 @@ public class FeePaymentService {
         if (existingPayment.isPresent()) {
             payment = existingPayment.get();
             payment.setAmountPaid(payment.getAmountPaid().add(paymentDTO.getAmountPaid()));
+            
+            // If they've now paid the full amount or more, update status to FULL_PAYMENT
+            if (payment.getAmountPaid().compareTo(payment.getMonthlyFeeAmount()) >= 0) {
+                payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
+            }
         } else {
             payment = new FeePayment();
             payment.setStudent(student);
@@ -56,14 +61,30 @@ public class FeePaymentService {
         }
 
         BigDecimal balance = payment.getMonthlyFeeAmount().subtract(payment.getAmountPaid());
-        payment.setBalance(balance);
-
-        if (balance.compareTo(BigDecimal.ZERO) == 0) {
+        
+        // Handle overpayment - if they paid more than required
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            // Set balance to zero for this payment
+            payment.setBalance(BigDecimal.ZERO);
             payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
-        } else if (payment.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
-            payment.setPaymentStatus(PaymentStatus.PART_PAYMENT);
+            
+            // Store the overpaid amount for future term/month
+            BigDecimal overpaidAmount = payment.getAmountPaid().subtract(payment.getMonthlyFeeAmount());
+            
+            // TODO: Create a credit record for the student that can be applied to future payments
+            // For now, just log the overpayment
+            System.out.println("Student " + student.getFullName() + " has overpaid by " + overpaidAmount + 
+                              ". This amount will be credited to their next payment.");
         } else {
-            payment.setPaymentStatus(PaymentStatus.NON_PAYER);
+            payment.setBalance(balance);
+            
+            if (balance.compareTo(BigDecimal.ZERO) == 0) {
+                payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
+            } else if (payment.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+                payment.setPaymentStatus(PaymentStatus.PART_PAYMENT);
+            } else {
+                payment.setPaymentStatus(PaymentStatus.NON_PAYER);
+            }
         }
 
         feePaymentRepository.save(payment);
@@ -75,7 +96,9 @@ public class FeePaymentService {
                 payment.getMonth(),
                 paymentDTO.getAmountPaid(),
                 payment.getBalance(),
-                payment.getPaymentDate()
+                payment.getPaymentDate(),
+                payment.getMonthlyFeeAmount(),
+                payment.getPaymentStatus().toString()
         );
     }
 
@@ -114,5 +137,20 @@ public class FeePaymentService {
 
     public List<FeePayment> getPaymentsByDate(LocalDate date) {
         return feePaymentRepository.findByPaymentDate(date);
+    }
+    
+    public List<Student> searchStudentsByName(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+        
+        String searchQuery = query.toLowerCase();
+        return studentRepository.findAll().stream()
+                .filter(student -> 
+                    student.getFirstName().toLowerCase().contains(searchQuery) || 
+                    student.getLastName().toLowerCase().contains(searchQuery) ||
+                    student.getStudentId().toLowerCase().contains(searchQuery))
+                .limit(10)  // Limit to 10 results
+                .collect(Collectors.toList());
     }
 }

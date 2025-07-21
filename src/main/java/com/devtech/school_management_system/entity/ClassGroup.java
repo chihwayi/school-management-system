@@ -1,5 +1,6 @@
 package com.devtech.school_management_system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -28,11 +29,9 @@ public class ClassGroup {
     @Column(name = "class_capacity")
     private Integer classCapacity;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "class_teacher_id")
     private Teacher classTeacher;
-
-
 
     @CreationTimestamp
     private LocalDateTime createdAt;
