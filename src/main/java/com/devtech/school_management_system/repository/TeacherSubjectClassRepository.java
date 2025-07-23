@@ -11,6 +11,8 @@ import java.util.Optional;
 
 @Repository
 public interface TeacherSubjectClassRepository extends JpaRepository<TeacherSubjectClass, Long> {
+    
+    void deleteByTeacherId(Long teacherId);
 
     List<TeacherSubjectClass> findByTeacherId(Long teacherId);
 

@@ -17,8 +17,17 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.List;
+
+import com.devtech.school_management_system.entity.Student;
+import com.devtech.school_management_system.entity.Guardian;
+import com.devtech.school_management_system.repository.StudentRepository;
+import com.devtech.school_management_system.repository.GuardianRepository;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -40,6 +49,12 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private SectionRepository sectionRepository;
+    
+    @Autowired
+    private StudentRepository studentRepository;
+    
+    @Autowired
+    private GuardianRepository guardianRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -48,6 +63,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeDefaultTeacher();
         initializeDefaultSubjects();
         initializeDefaultSections();
+        initializeStudentsWithGuardians();
     }
 
     private void initializeRoles() {
@@ -137,5 +153,106 @@ public class DataInitializer implements CommandLineRunner {
         section.setDescription(description);
         section.setActive(true);
         sectionRepository.save(section);
+    }
+    
+    private void initializeStudentsWithGuardians() {
+        // Check if students already exist
+        if (studentRepository.count() > 0) {
+            return; // Skip if students already exist
+        }
+        
+        // Lists for random data generation
+        List<String> firstNames = Arrays.asList(
+            "John", "Emma", "Michael", "Sophia", "William", "Olivia", "James", "Ava", 
+            "Alexander", "Isabella", "Benjamin", "Mia", "Elijah", "Charlotte", "Lucas", 
+            "Amelia", "Mason", "Harper", "Ethan", "Evelyn", "Daniel", "Abigail", "Matthew", 
+            "Emily", "David", "Elizabeth", "Joseph", "Sofia", "Jackson", "Avery"
+        );
+        
+        List<String> lastNames = Arrays.asList(
+            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", 
+            "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", 
+            "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", 
+            "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson"
+        );
+        
+        List<String> guardianFirstNames = Arrays.asList(
+            "Robert", "Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", 
+            "Jessica", "Sarah", "Karen", "Nancy", "Lisa", "Betty", "Margaret", "Sandra", 
+            "Ashley", "Kimberly", "Richard", "Joseph", "Thomas", "Charles", "Christopher", 
+            "Daniel", "Matthew", "Anthony", "Mark", "Donald", "Steven", "Paul"
+        );
+        
+        List<String> relationships = Arrays.asList(
+            "Father", "Mother", "Guardian", "Grandfather", "Grandmother", "Uncle", "Aunt"
+        );
+        
+        List<String> sections = Arrays.asList("A", "B", "C");
+        String academicYear = "2025";
+        
+        Random random = new Random();
+        
+        // Create 20 students with guardians
+        for (int i = 1; i <= 20; i++) {
+            // Generate random form (1-6)
+            int form = random.nextInt(6) + 1;
+            String formStr = "Form " + form;
+            
+            // Determine level based on form
+            String level;
+            if (form <= 2) {
+                level = "JUNIOR_SECONDARY";
+            } else if (form <= 4) {
+                level = "O_LEVEL";
+            } else {
+                level = "A_LEVEL";
+            }
+            
+            // Generate random section
+            String section = sections.get(random.nextInt(sections.size()));
+            
+            // Create student
+            Student student = new Student();
+            student.setFirstName(firstNames.get(random.nextInt(firstNames.size())));
+            student.setLastName(lastNames.get(random.nextInt(lastNames.size())));
+            student.setStudentId("STU" + String.format("%04d", i));
+            student.setForm(formStr);
+            student.setSection(section);
+            student.setLevel(level);
+            student.setAcademicYear(academicYear);
+            student.setEnrollmentDate(LocalDate.now().minusDays(random.nextInt(365)));
+            
+            Student savedStudent = studentRepository.save(student);
+            
+            // Create 1-2 guardians for each student
+            int numGuardians = random.nextInt(2) + 1;
+            for (int j = 0; j < numGuardians; j++) {
+                Guardian guardian = new Guardian();
+                guardian.setStudent(savedStudent);
+                guardian.setName(guardianFirstNames.get(random.nextInt(guardianFirstNames.size())) + " " + 
+                                savedStudent.getLastName());
+                guardian.setRelationship(relationships.get(random.nextInt(relationships.size())));
+                
+                // Generate phone number
+                String phoneNumber = "+263" + (70 + random.nextInt(30)) + 
+                                    String.format("%07d", random.nextInt(10000000));
+                guardian.setPhoneNumber(phoneNumber);
+                
+                // 70% chance to have WhatsApp
+                if (random.nextDouble() < 0.7) {
+                    guardian.setWhatsappNumber(phoneNumber);
+                }
+                
+                // First guardian is primary
+                guardian.setPrimaryGuardian(j == 0);
+                
+                guardianRepository.save(guardian);
+            }
+            
+            System.out.println("Created student: " + student.getFirstName() + " " + student.getLastName() + 
+                              " in " + student.getForm() + " " + student.getSection());
+        }
+        
+        System.out.println("Successfully created 20 students with guardians");
     }
 }

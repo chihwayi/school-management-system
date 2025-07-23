@@ -64,4 +64,17 @@ public class FeePaymentController {
     public List<Student> searchStudentsByName(@RequestParam String query) {
         return feePaymentService.searchStudentsByName(query);
     }
+    
+    @PostMapping("/fix-payment-status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String fixPaymentStatus() {
+        feePaymentService.fixPaymentStatusForCompletedPayments();
+        return "Payment statuses have been fixed successfully";
+    }
+    
+    @GetMapping("/fix-student-payment/{studentName}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String fixStudentPayment(@PathVariable String studentName) {
+        return feePaymentService.fixStudentPaymentByName(studentName);
+    }
 }

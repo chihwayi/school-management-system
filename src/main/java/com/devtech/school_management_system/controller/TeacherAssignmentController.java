@@ -1,7 +1,6 @@
 package com.devtech.school_management_system.controller;
 
 import com.devtech.school_management_system.dto.TeacherAssignmentDTO;
-import com.devtech.school_management_system.dto.TeacherSubjectClassDTO;
 import com.devtech.school_management_system.entity.TeacherSubjectClass;
 import com.devtech.school_management_system.service.TeacherAssignmentService;
 import org.springframework.http.MediaType;
@@ -13,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/api/teacher-assignments", produces = MediaType.APPLICATION_JSON_VALUE)
 public class TeacherAssignmentController {
+
     private final TeacherAssignmentService teacherAssignmentService;
 
     public TeacherAssignmentController(TeacherAssignmentService teacherAssignmentService) {
@@ -39,12 +39,12 @@ public class TeacherAssignmentController {
 
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
-    public List<TeacherSubjectClassDTO> getTeacherAssignments(@PathVariable Long teacherId) {
-        return teacherAssignmentService.getTeacherAssignmentsDTO(teacherId);
+    public List<TeacherSubjectClass> getTeacherAssignments(@PathVariable Long teacherId) {
+        return teacherAssignmentService.getTeacherAssignments(teacherId);
     }
 
     @GetMapping("/subject/{subjectId}/form/{form}/section/{section}/year/{year}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
     public TeacherSubjectClass getAssignmentForClass(
             @PathVariable Long subjectId,
             @PathVariable String form,
@@ -53,4 +53,3 @@ public class TeacherAssignmentController {
         return teacherAssignmentService.getAssignmentForClass(subjectId, form, section, year);
     }
 }
-

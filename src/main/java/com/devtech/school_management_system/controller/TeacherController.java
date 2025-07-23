@@ -4,6 +4,7 @@ import com.devtech.school_management_system.dto.ClassGroupWithStudentsDTO;
 import com.devtech.school_management_system.dto.TeacherAssignmentDTO;
 import com.devtech.school_management_system.dto.TeacherRegistrationDTO;
 import com.devtech.school_management_system.dto.TeacherSubjectClassDTO;
+import com.devtech.school_management_system.dto.TeacherWithUserDTO;
 import com.devtech.school_management_system.entity.ClassGroup;
 import com.devtech.school_management_system.entity.Teacher;
 import com.devtech.school_management_system.entity.TeacherSubjectClass;
@@ -17,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/api/teachers", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -31,7 +33,14 @@ public class TeacherController {
         this.teacherAssignmentService = teacherAssignmentService;
     }
 
-
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public Object getAllTeachers(@RequestParam(required = false) Boolean includeUser) {
+        if (Boolean.TRUE.equals(includeUser)) {
+            return teacherService.getAllTeachersWithUserDetails();
+        }
+        return teacherService.getAllTeachers();
+    }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
@@ -85,7 +94,7 @@ public class TeacherController {
 
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
-    public List<Teacher> getAllTeachers(@RequestParam(required = false) Boolean includeUser) {
+    public Object getAllTeachersWithDetails(@RequestParam(required = false) Boolean includeUser) {
         if (Boolean.TRUE.equals(includeUser)) {
             return teacherService.getAllTeachersWithUserDetails();
         }
@@ -99,7 +108,7 @@ public class TeacherController {
         return teacherService.getSupervisedClasses(username);
     }
 
-    @PostMapping("/assignments")
+    @PostMapping("/assign")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
     public TeacherSubjectClass assignTeacherToSubjectAndClass(@RequestBody TeacherAssignmentDTO assignmentDTO) {
         return teacherAssignmentService.assignTeacherToSubjectAndClass(
@@ -110,5 +119,20 @@ public class TeacherController {
                 assignmentDTO.getAcademicYear()
         );
     }
+    
+    @GetMapping("/{teacherId}/assignments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    public List<TeacherSubjectClassDTO> getTeacherAssignments(@PathVariable Long teacherId) {
+        return teacherAssignmentService.getTeacherAssignmentsDTO(teacherId);
+    }
+    
+    @PostMapping("/{teacherId}/bulk-assignments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public List<TeacherSubjectClass> saveTeacherAssignments(
+            @PathVariable Long teacherId,
+            @RequestBody Map<String, List<Map<String, Object>>> requestBody) {
+        
+        List<Map<String, Object>> assignments = requestBody.get("assignments");
+        return teacherAssignmentService.saveBulkAssignments(teacherId, assignments);
+    }
 }
-

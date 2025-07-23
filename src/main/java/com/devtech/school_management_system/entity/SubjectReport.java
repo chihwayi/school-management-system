@@ -41,6 +41,9 @@ public class SubjectReport {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     private Teacher teacher;
+    
+    @Column(name = "teacher_signature_url")
+    private String teacherSignatureUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -62,7 +65,7 @@ public class SubjectReport {
     public SubjectReport() {
     }
 
-    public SubjectReport(Long id, Report report, Subject subject, Double courseworkMark, Double examMark, Double totalMark, String grade, String teacherComment, Teacher teacher, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public SubjectReport(Long id, Report report, Subject subject, Double courseworkMark, Double examMark, Double totalMark, String grade, String teacherComment, Teacher teacher, String teacherSignatureUrl, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.report = report;
         this.subject = subject;
@@ -72,6 +75,7 @@ public class SubjectReport {
         this.grade = grade;
         this.teacherComment = teacherComment;
         this.teacher = teacher;
+        this.teacherSignatureUrl = teacherSignatureUrl;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -162,5 +166,13 @@ public class SubjectReport {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    public String getTeacherSignatureUrl() {
+        return teacherSignatureUrl;
+    }
+
+    public void setTeacherSignatureUrl(String teacherSignatureUrl) {
+        this.teacherSignatureUrl = teacherSignatureUrl;
     }
 }

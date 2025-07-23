@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -61,6 +62,43 @@ public class TeacherAssignmentService {
 
     public List<TeacherSubjectClass> getTeacherAssignments(Long teacherId) {
         return teacherSubjectClassRepository.findByTeacherId(teacherId);
+    }
+    
+    @Transactional
+    public List<TeacherSubjectClass> saveBulkAssignments(Long teacherId, List<Map<String, Object>> assignments) {
+        Teacher teacher = teacherRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
+        
+        // First, remove all existing assignments for this teacher
+        teacherSubjectClassRepository.deleteByTeacherId(teacherId);
+        
+        // Then create new assignments
+        for (Map<String, Object> assignment : assignments) {
+            Long subjectId = Long.valueOf(assignment.get("subjectId").toString());
+            Long classGroupId = Long.valueOf(assignment.get("classGroupId").toString());
+            
+            Subject subject = subjectRepository.findById(subjectId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
+            
+            // Get class details - in a real implementation, you would get this from the classGroupRepository
+            // For now, we'll use placeholder values
+            String form = "Form 1"; // This should come from the class group
+            String section = "A";   // This should come from the class group
+            String academicYear = "2024"; // This should come from the class group
+            
+            TeacherSubjectClass newAssignment = new TeacherSubjectClass();
+            newAssignment.setTeacher(teacher);
+            newAssignment.setSubject(subject);
+            newAssignment.setForm(form);
+            newAssignment.setSection(section);
+            newAssignment.setAcademicYear(academicYear);
+            newAssignment.setCreatedAt(LocalDateTime.now());
+            newAssignment.setUpdatedAt(LocalDateTime.now());
+            
+            teacherSubjectClassRepository.save(newAssignment);
+        }
+        
+        return getTeacherAssignments(teacherId);
     }
 
     public List<TeacherSubjectClassDTO> getTeacherAssignmentsDTO(Long teacherId) {

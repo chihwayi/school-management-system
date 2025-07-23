@@ -2,6 +2,7 @@ package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.dto.ClassGroupWithStudentsDTO;
 import com.devtech.school_management_system.dto.TeacherSubjectClassDTO;
+import com.devtech.school_management_system.dto.TeacherWithUserDTO;
 import com.devtech.school_management_system.entity.ClassGroup;
 import com.devtech.school_management_system.entity.Student;
 import com.devtech.school_management_system.entity.Teacher;
@@ -106,15 +107,17 @@ public class TeacherService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    public List<Teacher> getAllTeachersWithUserDetails() {
+    public List<TeacherWithUserDTO> getAllTeachersWithUserDetails() {
         List<Teacher> teachers = teacherRepository.findAll();
-        for (Teacher teacher : teachers) {
-            if (teacher.getUser() != null) {
-                Hibernate.initialize(teacher.getUser());
-                Hibernate.initialize(teacher.getUser().getRoles());
-            }
-        }
-        return teachers;
+        return teachers.stream()
+            .map(teacher -> {
+                if (teacher.getUser() != null) {
+                    Hibernate.initialize(teacher.getUser());
+                    Hibernate.initialize(teacher.getUser().getRoles());
+                }
+                return new TeacherWithUserDTO(teacher);
+            })
+            .collect(java.util.stream.Collectors.toList());
     }
 
 

@@ -7,7 +7,8 @@ public class TeacherAssignmentDTO {
     private String section;
     private String academicYear;
 
-    public TeacherAssignmentDTO() {}
+    public TeacherAssignmentDTO() {
+    }
 
     public TeacherAssignmentDTO(Long teacherId, Long subjectId, String form, String section, String academicYear) {
         this.teacherId = teacherId;

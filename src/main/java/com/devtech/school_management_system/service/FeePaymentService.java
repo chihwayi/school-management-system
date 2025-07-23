@@ -63,24 +63,21 @@ public class FeePaymentService {
         BigDecimal balance = payment.getMonthlyFeeAmount().subtract(payment.getAmountPaid());
         
         // Handle overpayment - if they paid more than required
-        if (balance.compareTo(BigDecimal.ZERO) < 0) {
-            // Set balance to zero for this payment
-            payment.setBalance(BigDecimal.ZERO);
+        if (balance.compareTo(BigDecimal.ZERO) <= 0) {
+            // Set balance to the actual value (zero or negative)
+            payment.setBalance(balance);
             payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
             
-            // Store the overpaid amount for future term/month
-            BigDecimal overpaidAmount = payment.getAmountPaid().subtract(payment.getMonthlyFeeAmount());
-            
-            // TODO: Create a credit record for the student that can be applied to future payments
-            // For now, just log the overpayment
-            System.out.println("Student " + student.getFullName() + " has overpaid by " + overpaidAmount + 
-                              ". This amount will be credited to their next payment.");
+            // If there's an overpayment, log it
+            if (balance.compareTo(BigDecimal.ZERO) < 0) {
+                BigDecimal overpaidAmount = payment.getAmountPaid().subtract(payment.getMonthlyFeeAmount());
+                System.out.println("Student " + student.getFullName() + " has overpaid by " + overpaidAmount + 
+                                  ". This amount will be credited to their next payment.");
+            }
         } else {
             payment.setBalance(balance);
             
-            if (balance.compareTo(BigDecimal.ZERO) == 0) {
-                payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
-            } else if (payment.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+            if (payment.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
                 payment.setPaymentStatus(PaymentStatus.PART_PAYMENT);
             } else {
                 payment.setPaymentStatus(PaymentStatus.NON_PAYER);
@@ -152,5 +149,80 @@ public class FeePaymentService {
                     student.getStudentId().toLowerCase().contains(searchQuery))
                 .limit(10)  // Limit to 10 results
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Fix payment status for records that have a zero or negative balance but still show PART_PAYMENT status
+     */
+    @Transactional
+    public void fixPaymentStatusForCompletedPayments() {
+        List<FeePayment> payments = feePaymentRepository.findAll();
+        int updatedCount = 0;
+        
+        for (FeePayment payment : payments) {
+            if (payment.getPaymentStatus() == PaymentStatus.PART_PAYMENT && 
+                payment.getBalance().compareTo(BigDecimal.ZERO) <= 0) {
+                payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
+                feePaymentRepository.save(payment);
+                updatedCount++;
+            }
+        }
+        
+        System.out.println("Fixed payment status for " + updatedCount + " records");
+    }
+    
+    /**
+     * Fix payment issues for a specific student by name
+     */
+    @Transactional
+    public String fixStudentPaymentByName(String studentName) {
+        List<Student> students = studentRepository.findAll().stream()
+            .filter(s -> (s.getFirstName() + " " + s.getLastName()).toLowerCase()
+                .contains(studentName.toLowerCase()))
+            .collect(Collectors.toList());
+        
+        if (students.isEmpty()) {
+            return "No students found matching name: " + studentName;
+        }
+        
+        StringBuilder result = new StringBuilder();
+        int fixedCount = 0;
+        
+        for (Student student : students) {
+            result.append("Processing student: ").append(student.getFirstName())
+                  .append(" ").append(student.getLastName()).append("\n");
+            
+            List<FeePayment> payments = feePaymentRepository.findByStudentId(student.getId());
+            if (payments == null || payments.isEmpty()) {
+                result.append("No payments found for this student\n");
+                continue;
+            }
+            
+            for (FeePayment payment : payments) {
+                result.append("Payment ID: ").append(payment.getId())
+                      .append(", Status: ").append(payment.getPaymentStatus())
+                      .append(", Balance: ").append(payment.getBalance()).append("\n");
+                
+                // Fix any payment with balance <= 0 but not marked as FULL_PAYMENT
+                if (payment.getBalance().compareTo(BigDecimal.ZERO) <= 0 && 
+                    payment.getPaymentStatus() != PaymentStatus.FULL_PAYMENT) {
+                    payment.setPaymentStatus(PaymentStatus.FULL_PAYMENT);
+                    feePaymentRepository.save(payment);
+                    result.append("Fixed: Changed status to FULL_PAYMENT\n");
+                    fixedCount++;
+                }
+                // Fix any payment with balance > 0 but marked as FULL_PAYMENT
+                else if (payment.getBalance().compareTo(BigDecimal.ZERO) > 0 && 
+                         payment.getPaymentStatus() == PaymentStatus.FULL_PAYMENT) {
+                    payment.setPaymentStatus(PaymentStatus.PART_PAYMENT);
+                    feePaymentRepository.save(payment);
+                    result.append("Fixed: Changed status to PART_PAYMENT\n");
+                    fixedCount++;
+                }
+            }
+        }
+        
+        result.append("Fixed ").append(fixedCount).append(" payment records");
+        return result.toString();
     }
 }
