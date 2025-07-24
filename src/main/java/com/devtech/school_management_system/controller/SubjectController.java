@@ -13,9 +13,12 @@ import java.util.List;
 @RequestMapping(value = "/api/subjects", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SubjectController {
     private final SubjectService subjectService;
+    private final com.devtech.school_management_system.repository.StudentSubjectRepository studentSubjectRepository;
 
-    public SubjectController(SubjectService subjectService) {
+    public SubjectController(SubjectService subjectService,
+                           com.devtech.school_management_system.repository.StudentSubjectRepository studentSubjectRepository) {
         this.subjectService = subjectService;
+        this.studentSubjectRepository = studentSubjectRepository;
     }
 
     @GetMapping("/all")
@@ -48,10 +51,39 @@ public class SubjectController {
         return subjectService.updateSubject(id, subject);
     }
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
     public Subject getSubjectById(@PathVariable Long id) {
         return subjectService.getSubjectById(id);
+    }
+
+    @GetMapping("/{id}/teachers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    public List<com.devtech.school_management_system.dto.TeacherSubjectAssignmentDTO> getTeachersBySubject(@PathVariable Long id) {
+        return subjectService.getTeachersWithClassesBySubject(id);
+    }
+
+    @GetMapping("/{id}/students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    public List<com.devtech.school_management_system.dto.StudentDTO> getStudentsBySubject(@PathVariable Long id) {
+        return subjectService.getStudentsBySubject(id);
+    }
+
+    @GetMapping("/{id}/classes")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    public List<String> getClassesBySubject(@PathVariable Long id) {
+        return subjectService.getClassesBySubject(id);
+    }
+
+    @GetMapping("/{id}/test")
+    public String testSubjectData(@PathVariable Long id) {
+        try {
+            List<com.devtech.school_management_system.entity.StudentSubject> studentSubjects = 
+                studentSubjectRepository.findBySubjectId(id);
+            return "Found " + studentSubjects.size() + " student-subject records for subject " + id;
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
     }
 
     @DeleteMapping("/{id}")

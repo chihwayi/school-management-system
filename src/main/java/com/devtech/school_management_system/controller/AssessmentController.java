@@ -27,7 +27,7 @@ public class AssessmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
     public Assessment recordAssessment(@RequestBody AssessmentDTO assessmentDTO, Authentication authentication) {
         String username = authentication.getName();
         Teacher teacher = teacherService.getTeacherByUsername(username);
@@ -51,14 +51,14 @@ public class AssessmentController {
     }
 
     @GetMapping("/student/{studentId}/subject/{subjectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER', 'CLASS_TEACHER')")
     public List<Assessment> getStudentSubjectAssessments(@PathVariable Long studentId,
                                                          @PathVariable Long subjectId) {
         return assessmentService.getStudentSubjectAssessments(studentId, subjectId);
     }
 
     @GetMapping("/student/{studentId}/term/{term}/year/{year}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER', 'CLASS_TEACHER')")
     public List<Assessment> getStudentTermAssessments(@PathVariable Long studentId,
                                                       @PathVariable String term,
                                                       @PathVariable String year) {
@@ -66,7 +66,7 @@ public class AssessmentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
     public Assessment updateAssessment(@PathVariable Long id,
                                        @RequestBody AssessmentUpdateDTO updateDTO,
                                        Authentication authentication) {
@@ -88,13 +88,13 @@ public class AssessmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'CLASS_TEACHER')")
     public Assessment getAssessmentById(@PathVariable Long id) {
         return assessmentService.getAssessmentById(id);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'CLASS_TEACHER')")
     public void deleteAssessment(@PathVariable Long id, Authentication authentication) {
         String username = authentication.getName();
         Teacher teacher = teacherService.getTeacherByUsername(username);

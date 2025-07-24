@@ -6,6 +6,7 @@ import com.devtech.school_management_system.entity.Subject;
 import com.devtech.school_management_system.dto.StudentRegistrationDTO;
 import com.devtech.school_management_system.dto.StudentUpdateDTO;
 import com.devtech.school_management_system.dto.PromotionToALevelDTO;
+import com.devtech.school_management_system.dto.StudentSubjectAssignmentDTO;
 import com.devtech.school_management_system.service.StudentService;
 import com.devtech.school_management_system.repository.StudentRepository;
 import org.springframework.http.MediaType;
@@ -126,6 +127,27 @@ public class StudentController {
         }
         
         return "Fixed academic years for " + updatedCount + " students";
+    }
+
+    @PostMapping("/bulk-assign-subjects")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public void bulkAssignSubjectsToClass(@RequestBody java.util.Map<String, Object> requestBody) {
+        String form = (String) requestBody.get("form");
+        String section = (String) requestBody.get("section");
+        @SuppressWarnings("unchecked")
+        List<Integer> subjectIds = (List<Integer>) requestBody.get("subjectIds");
+        
+        List<Long> longSubjectIds = subjectIds.stream()
+                .map(Integer::longValue)
+                .collect(java.util.stream.Collectors.toList());
+        
+        studentService.bulkAssignSubjectsToClass(form, section, longSubjectIds);
+    }
+
+    @PostMapping("/assign-subjects")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public List<StudentSubject> hybridAssignSubjects(@RequestBody StudentSubjectAssignmentDTO assignmentDTO) {
+        return studentService.hybridAssignSubjects(assignmentDTO);
     }
 }
 

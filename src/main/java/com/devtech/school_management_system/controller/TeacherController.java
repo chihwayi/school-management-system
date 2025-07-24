@@ -15,6 +15,7 @@ import com.devtech.school_management_system.service.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -79,14 +80,14 @@ public class TeacherController {
     }
 
     @GetMapping("/current")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
     public Teacher getCurrentTeacher(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getTeacherByUsername(username);
     }
 
-    @GetMapping("/subjects/assigned")
-    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/assignments/current")
+    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
     public List<TeacherSubjectClassDTO> getAssignedSubjectsAndClasses(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getAssignedSubjectsAndClassesDTO(username);
@@ -101,8 +102,8 @@ public class TeacherController {
         return teacherService.getAllTeachers();
     }
 
-    @GetMapping("/class-teacher-assignments")
-    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/supervised-classes")
+    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
     public List<ClassGroupWithStudentsDTO> getSupervisedClasses(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getSupervisedClasses(username);
@@ -128,11 +129,22 @@ public class TeacherController {
     
     @PostMapping("/{teacherId}/bulk-assignments")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @Transactional
     public List<TeacherSubjectClass> saveTeacherAssignments(
             @PathVariable Long teacherId,
             @RequestBody Map<String, List<Map<String, Object>>> requestBody) {
         
+        System.out.println("Received bulk assignment request for teacher: " + teacherId);
         List<Map<String, Object>> assignments = requestBody.get("assignments");
-        return teacherAssignmentService.saveBulkAssignments(teacherId, assignments);
+        System.out.println("Number of assignments received: " + (assignments != null ? assignments.size() : 0));
+        
+        if (assignments == null || assignments.isEmpty()) {
+            System.out.println("No assignments provided, returning empty list");
+            return teacherAssignmentService.getTeacherAssignments(teacherId);
+        }
+        
+        List<TeacherSubjectClass> result = teacherAssignmentService.saveBulkAssignments(teacherId, assignments);
+        System.out.println("Returning " + result.size() + " assignments after bulk save");
+        return result;
     }
 }

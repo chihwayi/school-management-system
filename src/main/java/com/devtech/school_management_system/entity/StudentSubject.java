@@ -1,5 +1,6 @@
 package com.devtech.school_management_system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,12 +23,17 @@ public class StudentSubject {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
+    @JsonIgnore
     private Subject subject;
 
-    @Column(name = "academic_year", nullable = false)
+    @Column(name = "academic_year")
     private String academicYear;
 
+    @Column(name = "assigned_date")
+    private LocalDateTime assignedDate;
+
     @OneToMany(mappedBy = "studentSubject", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Assessment> assessments;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -50,11 +56,12 @@ public class StudentSubject {
     public StudentSubject() {
     }
 
-    public StudentSubject(Long id, Student student, Subject subject, String academicYear, List<Assessment> assessments, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public StudentSubject(Long id, Student student, Subject subject, String academicYear, LocalDateTime assignedDate, List<Assessment> assessments, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.student = student;
         this.subject = subject;
         this.academicYear = academicYear;
+        this.assignedDate = assignedDate;
         this.assessments = assessments;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -114,6 +121,14 @@ public class StudentSubject {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getAssignedDate() {
+        return assignedDate;
+    }
+
+    public void setAssignedDate(LocalDateTime assignedDate) {
+        this.assignedDate = assignedDate;
     }
 }
 

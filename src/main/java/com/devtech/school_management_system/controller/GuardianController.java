@@ -55,8 +55,9 @@ public class GuardianController {
     }
 
     @GetMapping("/guardian/{id}")
-    public void getGuardian(@PathVariable Long id) {
-        guardianRepository.findById(id);
+    public Guardian getGuardian(@PathVariable Long id) {
+        return guardianRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Guardian not found with id: " + id));
     }
 }
 

@@ -1,6 +1,7 @@
 package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.dto.StudentUpdateDTO;
+import com.devtech.school_management_system.dto.StudentSubjectAssignmentDTO;
 import com.devtech.school_management_system.entity.*;
 import com.devtech.school_management_system.exception.ResourceNotFoundException;
 import com.devtech.school_management_system.repository.*;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 @Transactional
@@ -106,9 +108,16 @@ public class StudentService {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
 
+        // Check if already assigned
+        if (studentSubjectRepository.findByStudentIdAndSubjectId(studentId, subjectId).isPresent()) {
+            throw new IllegalArgumentException("Subject already assigned to student");
+        }
+
         StudentSubject studentSubject = new StudentSubject();
         studentSubject.setStudent(student);
         studentSubject.setSubject(subject);
+        studentSubject.setAcademicYear(student.getAcademicYear());
+        studentSubject.setAssignedDate(LocalDateTime.now());
         studentSubject.setCreatedAt(LocalDateTime.now());
         studentSubject.setUpdatedAt(LocalDateTime.now());
 
@@ -165,6 +174,107 @@ public class StudentService {
         }
 
         return studentRepository.saveAll(students);
+    }
+
+    @Transactional
+    public void bulkAssignSubjectsToClass(String form, String section, List<Long> subjectIds) {
+        List<Student> students = studentRepository.findByFormAndSection(form, section);
+        
+        if (students.isEmpty()) {
+            throw new ResourceNotFoundException("No students found in class " + form + " " + section);
+        }
+        
+        for (Student student : students) {
+            for (Long subjectId : subjectIds) {
+                boolean alreadyAssigned = studentSubjectRepository
+                        .findByStudentIdAndSubjectId(student.getId(), subjectId)
+                        .isPresent();
+                
+                if (!alreadyAssigned) {
+                    Subject subject = subjectRepository.findById(subjectId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
+                    
+                    StudentSubject studentSubject = new StudentSubject();
+                    studentSubject.setStudent(student);
+                    studentSubject.setSubject(subject);
+                    studentSubject.setAcademicYear(student.getAcademicYear());
+                    studentSubject.setAssignedDate(LocalDateTime.now());
+                    studentSubject.setCreatedAt(LocalDateTime.now());
+                    studentSubject.setUpdatedAt(LocalDateTime.now());
+                    
+                    studentSubjectRepository.save(studentSubject);
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public List<StudentSubject> hybridAssignSubjects(StudentSubjectAssignmentDTO assignmentDTO) {
+        List<Student> targetStudents;
+        
+        // Determine target students based on assignment type
+        switch (assignmentDTO.getAssignmentType()) {
+            case SINGLE:
+                if (assignmentDTO.getStudentIds() == null || assignmentDTO.getStudentIds().size() != 1) {
+                    throw new IllegalArgumentException("Single assignment requires exactly one student ID");
+                }
+                targetStudents = studentRepository.findAllById(assignmentDTO.getStudentIds());
+                break;
+                
+            case BULK_CLASS:
+                if (assignmentDTO.getForm() == null || assignmentDTO.getSection() == null) {
+                    throw new IllegalArgumentException("Bulk class assignment requires form and section");
+                }
+                targetStudents = studentRepository.findByFormAndSection(
+                    assignmentDTO.getForm(), assignmentDTO.getSection());
+                break;
+                
+            case BULK_CUSTOM:
+                if (assignmentDTO.getStudentIds() == null || assignmentDTO.getStudentIds().isEmpty()) {
+                    throw new IllegalArgumentException("Bulk custom assignment requires student IDs");
+                }
+                targetStudents = studentRepository.findAllById(assignmentDTO.getStudentIds());
+                break;
+                
+            default:
+                throw new IllegalArgumentException("Invalid assignment type");
+        }
+        
+        if (targetStudents.isEmpty()) {
+            throw new ResourceNotFoundException("No students found for assignment");
+        }
+        
+        // Validate subjects exist
+        List<Subject> subjects = subjectRepository.findAllById(assignmentDTO.getSubjectIds());
+        if (subjects.size() != assignmentDTO.getSubjectIds().size()) {
+            throw new ResourceNotFoundException("One or more subjects not found");
+        }
+        
+        List<StudentSubject> assignments = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Create assignments
+        for (Student student : targetStudents) {
+            for (Subject subject : subjects) {
+                // Check if already assigned
+                if (!studentSubjectRepository.findByStudentIdAndSubjectId(
+                        student.getId(), subject.getId()).isPresent()) {
+                    
+                    StudentSubject studentSubject = new StudentSubject();
+                    studentSubject.setStudent(student);
+                    studentSubject.setSubject(subject);
+                    studentSubject.setAcademicYear(assignmentDTO.getAcademicYear() != null ? 
+                        assignmentDTO.getAcademicYear() : student.getAcademicYear());
+                    studentSubject.setAssignedDate(now);
+                    studentSubject.setCreatedAt(now);
+                    studentSubject.setUpdatedAt(now);
+                    
+                    assignments.add(studentSubjectRepository.save(studentSubject));
+                }
+            }
+        }
+        
+        return assignments;
     }
 
     private String getNextForm(String currentForm) {

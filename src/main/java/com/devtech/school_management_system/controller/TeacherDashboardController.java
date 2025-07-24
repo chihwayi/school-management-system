@@ -23,17 +23,7 @@ public class TeacherDashboardController {
         this.teacherService = teacherService;
     }
 
-    @GetMapping("/api/teachers/supervised-classes")
-    @PreAuthorize("hasRole('TEACHER')")
-    public List<ClassGroupWithStudentsDTO> getSupervisedClasses(Authentication authentication) {
-        String username = authentication.getName();
-        return teacherService.getSupervisedClasses(username);
-    }
-
-    @GetMapping("/api/teachers/assignments/current")
-    @PreAuthorize("hasRole('TEACHER')")
-    public List<TeacherSubjectClassDTO> getAssignedSubjectsAndClasses(Authentication authentication) {
-        String username = authentication.getName();
-        return teacherService.getAssignedSubjectsAndClassesDTO(username);
-    }
+    // Endpoints moved to TeacherController to avoid duplicate mappings
+    // /api/teachers/supervised-classes -> TeacherController
+    // /api/teachers/assignments/current -> TeacherController
 }
