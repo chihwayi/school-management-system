@@ -5,7 +5,8 @@ import com.devtech.school_management_system.enums.AssessmentType;
 import java.time.LocalDate;
 
 public class AssessmentDTO {
-    private Long studentSubjectId;
+    private Long studentId;
+    private Long subjectId;
     private String title;
     private LocalDate date;
     private Double score;
@@ -17,8 +18,9 @@ public class AssessmentDTO {
     public AssessmentDTO() {
     }
 
-    public AssessmentDTO(Long studentSubjectId, String title, LocalDate date, Double score, Double maxScore, AssessmentType type, String term, String academicYear) {
-        this.studentSubjectId = studentSubjectId;
+    public AssessmentDTO(Long studentId, Long subjectId, String title, LocalDate date, Double score, Double maxScore, AssessmentType type, String term, String academicYear) {
+        this.studentId = studentId;
+        this.subjectId = subjectId;
         this.title = title;
         this.date = date;
         this.score = score;
@@ -28,12 +30,20 @@ public class AssessmentDTO {
         this.academicYear = academicYear;
     }
 
-    public Long getStudentSubjectId() {
-        return studentSubjectId;
+    public Long getStudentId() {
+        return studentId;
     }
 
-    public void setStudentSubjectId(Long studentSubjectId) {
-        this.studentSubjectId = studentSubjectId;
+    public void setStudentId(Long studentId) {
+        this.studentId = studentId;
+    }
+
+    public Long getSubjectId() {
+        return subjectId;
+    }
+
+    public void setSubjectId(Long subjectId) {
+        this.subjectId = subjectId;
     }
 
     public String getTitle() {

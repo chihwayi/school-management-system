@@ -277,6 +277,12 @@ public class StudentService {
         return assignments;
     }
 
+    public StudentSubject getStudentSubjectRelationship(Long studentId, Long subjectId) {
+        return studentSubjectRepository.findByStudentIdAndSubjectId(studentId, subjectId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Student-Subject relationship not found for student " + studentId + " and subject " + subjectId));
+    }
+
     private String getNextForm(String currentForm) {
         switch (currentForm) {
             case "Form 1":

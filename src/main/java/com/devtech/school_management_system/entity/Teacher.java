@@ -26,6 +26,9 @@ public class Teacher {
     @Column(name = "employee_id", unique = true, nullable = false)
     private String employeeId;
 
+    @Column(name = "signature_url")
+    private String signatureUrl;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @JsonIgnoreProperties({"teacher"})
@@ -60,6 +63,9 @@ public class Teacher {
 
     public String getEmployeeId() { return employeeId; }
     public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+
+    public String getSignatureUrl() { return signatureUrl; }
+    public void setSignatureUrl(String signatureUrl) { this.signatureUrl = signatureUrl; }
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }

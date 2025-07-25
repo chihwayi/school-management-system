@@ -1,10 +1,15 @@
 package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.entity.Assessment;
+import com.devtech.school_management_system.entity.Student;
+import com.devtech.school_management_system.entity.Subject;
 import com.devtech.school_management_system.entity.StudentSubject;
+import com.devtech.school_management_system.dto.AssessmentResponseDTO;
 import com.devtech.school_management_system.enums.AssessmentType;
 import com.devtech.school_management_system.exception.ResourceNotFoundException;
 import com.devtech.school_management_system.repository.AssessmentRepository;
+import com.devtech.school_management_system.repository.StudentRepository;
+import com.devtech.school_management_system.repository.SubjectRepository;
 import com.devtech.school_management_system.repository.StudentSubjectRepository;
 import com.devtech.school_management_system.repository.TeacherSubjectClassRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,14 +26,20 @@ public class AssessmentService {
     private final AssessmentRepository assessmentRepository;
     private final StudentSubjectRepository studentSubjectRepository;
     private final TeacherSubjectClassRepository teacherSubjectClassRepository;
+    private final StudentRepository studentRepository;
+    private final SubjectRepository subjectRepository;
 
     @Autowired
     public AssessmentService(AssessmentRepository assessmentRepository,
                              StudentSubjectRepository studentSubjectRepository,
-                             TeacherSubjectClassRepository teacherSubjectClassRepository) {
+                             TeacherSubjectClassRepository teacherSubjectClassRepository,
+                             StudentRepository studentRepository,
+                             SubjectRepository subjectRepository) {
         this.assessmentRepository = assessmentRepository;
         this.studentSubjectRepository = studentSubjectRepository;
         this.teacherSubjectClassRepository = teacherSubjectClassRepository;
+        this.studentRepository = studentRepository;
+        this.subjectRepository = subjectRepository;
     }
 
     public Assessment recordAssessment(Long studentSubjectId, String title, LocalDate date,
@@ -50,15 +61,54 @@ public class AssessmentService {
         return assessmentRepository.save(assessment);
     }
 
-    public List<Assessment> getStudentSubjectAssessments(Long studentId, Long subjectId) {
-        return assessmentRepository.findByStudentSubjectStudentIdAndStudentSubjectSubjectId(studentId, subjectId);
+    public AssessmentResponseDTO recordAssessmentByStudentAndSubject(Long studentId, Long subjectId, String title, LocalDate date,
+                                                          Double score, Double maxScore, AssessmentType type,
+                                                          String term, String academicYear) {
+        // Find or create StudentSubject relationship
+        StudentSubject studentSubject = studentSubjectRepository.findByStudentIdAndSubjectId(studentId, subjectId)
+                .orElseGet(() -> {
+                    // Create new StudentSubject relationship if it doesn't exist
+                    Student student = studentRepository.findById(studentId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+                    Subject subject = subjectRepository.findById(subjectId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
+                    
+                    StudentSubject newStudentSubject = new StudentSubject();
+                    newStudentSubject.setStudent(student);
+                    newStudentSubject.setSubject(subject);
+                    newStudentSubject.setAssignedDate(java.time.LocalDateTime.now());
+                    return studentSubjectRepository.save(newStudentSubject);
+                });
+
+        Assessment assessment = new Assessment();
+        assessment.setStudentSubject(studentSubject);
+        assessment.setTitle(title);
+        assessment.setDate(date);
+        assessment.setScore(score);
+        assessment.setMaxScore(maxScore);
+        assessment.setType(type);
+        assessment.setTerm(term);
+        assessment.setAcademicYear(academicYear);
+
+        Assessment savedAssessment = assessmentRepository.save(assessment);
+        return convertToDTO(savedAssessment);
     }
 
-    public List<Assessment> getStudentTermAssessments(Long studentId, String term, String year) {
-        return assessmentRepository.findByStudentSubjectStudentIdAndTermAndAcademicYear(studentId, term, year);
+    public List<AssessmentResponseDTO> getStudentSubjectAssessments(Long studentId, Long subjectId) {
+        List<Assessment> assessments = assessmentRepository.findByStudentIdAndSubjectId(studentId, subjectId);
+        return assessments.stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList());
     }
 
-    public Assessment updateAssessment(Long id, String title, LocalDate date, Double score, Double maxScore) {
+    public List<AssessmentResponseDTO> getStudentTermAssessments(Long studentId, String term, String year) {
+        List<Assessment> assessments = assessmentRepository.findByStudentIdAndTermAndAcademicYear(studentId, term, year);
+        return assessments.stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public AssessmentResponseDTO updateAssessment(Long id, String title, LocalDate date, Double score, Double maxScore) {
         Assessment assessment = assessmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Assessment not found with id: " + id));
 
@@ -67,7 +117,8 @@ public class AssessmentService {
         assessment.setScore(score);
         assessment.setMaxScore(maxScore);
 
-        return assessmentRepository.save(assessment);
+        Assessment updatedAssessment = assessmentRepository.save(assessment);
+        return convertToDTO(updatedAssessment);
     }
 
     public Assessment getAssessmentById(Long id) {
@@ -128,5 +179,27 @@ public class AssessmentService {
                 .orElse(null);
 
         return latestExam.getScore() / latestExam.getMaxScore() * 100;
+    }
+    
+    private AssessmentResponseDTO convertToDTO(Assessment assessment) {
+        StudentSubject studentSubject = assessment.getStudentSubject();
+        return new AssessmentResponseDTO(
+                assessment.getId(),
+                assessment.getTitle(),
+                assessment.getDate(),
+                assessment.getScore(),
+                assessment.getMaxScore(),
+                assessment.getType(),
+                assessment.getTerm(),
+                assessment.getAcademicYear(),
+                studentSubject.getStudent().getId(),
+                studentSubject.getStudent().getFirstName(),
+                studentSubject.getStudent().getLastName(),
+                studentSubject.getStudent().getForm(),
+                studentSubject.getStudent().getSection(),
+                studentSubject.getSubject().getId(),
+                studentSubject.getSubject().getName(),
+                studentSubject.getSubject().getCode()
+        );
     }
 }

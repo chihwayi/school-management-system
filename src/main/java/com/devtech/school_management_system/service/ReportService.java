@@ -1,199 +1,247 @@
 package com.devtech.school_management_system.service;
 
-import com.devtech.school_management_system.entity.ClassGroup;
-import com.devtech.school_management_system.entity.Report;
-import com.devtech.school_management_system.entity.Student;
-import com.devtech.school_management_system.entity.Subject;
-import com.devtech.school_management_system.entity.SubjectReport;
-import com.devtech.school_management_system.entity.Teacher;
-import com.devtech.school_management_system.repository.ClassGroupRepository;
-import com.devtech.school_management_system.repository.ReportRepository;
+import com.devtech.school_management_system.dto.*;
+import com.devtech.school_management_system.entity.*;
+import com.devtech.school_management_system.repository.*;
 import com.devtech.school_management_system.repository.StudentRepository;
-import com.devtech.school_management_system.repository.SubjectRepository;
-import com.devtech.school_management_system.repository.SubjectReportRepository;
-import com.devtech.school_management_system.repository.TeacherRepository;
-import com.devtech.school_management_system.repository.StudentSubjectRepository;
-import com.devtech.school_management_system.entity.StudentSubject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class ReportService {
 
-    private final ReportRepository reportRepository;
-    private final SubjectReportRepository subjectReportRepository;
     private final StudentRepository studentRepository;
-    private final ClassGroupRepository classGroupRepository;
-    private final SubjectRepository subjectRepository;
+    private final AssessmentRepository assessmentRepository;
     private final TeacherRepository teacherRepository;
     private final StudentSubjectRepository studentSubjectRepository;
+    private final ReportRepository reportRepository;
+    private final SubjectReportRepository subjectReportRepository;
+    private final SubjectRepository subjectRepository;
 
     @Autowired
-    public ReportService(ReportRepository reportRepository,
-                         SubjectReportRepository subjectReportRepository,
-                         StudentRepository studentRepository,
-                         ClassGroupRepository classGroupRepository,
-                         SubjectRepository subjectRepository,
-                         TeacherRepository teacherRepository,
-                         StudentSubjectRepository studentSubjectRepository) {
-        this.reportRepository = reportRepository;
-        this.subjectReportRepository = subjectReportRepository;
+    public ReportService(StudentRepository studentRepository,
+                        AssessmentRepository assessmentRepository,
+                        TeacherRepository teacherRepository,
+                        StudentSubjectRepository studentSubjectRepository,
+                        ReportRepository reportRepository,
+                        SubjectReportRepository subjectReportRepository,
+                        SubjectRepository subjectRepository) {
         this.studentRepository = studentRepository;
-        this.classGroupRepository = classGroupRepository;
-        this.subjectRepository = subjectRepository;
+        this.assessmentRepository = assessmentRepository;
         this.teacherRepository = teacherRepository;
         this.studentSubjectRepository = studentSubjectRepository;
+        this.reportRepository = reportRepository;
+        this.subjectReportRepository = subjectReportRepository;
+        this.subjectRepository = subjectRepository;
     }
 
-    public List<Report> generateClassReports(Long classGroupId, String term, String year) {
-        ClassGroup classGroup = classGroupRepository.findById(classGroupId)
-                .orElseThrow(() -> new RuntimeException("Class group not found"));
-
-        List<Student> students = studentRepository.findByFormAndSectionAndYear(
-                classGroup.getForm(), classGroup.getSection(), classGroup.getAcademicYear());
-
-        List<Report> reports = new ArrayList<>();
-        for (Student student : students) {
-            // Check if report already exists
-            Optional<Report> existingReport = reportRepository.findByStudentIdAndTermAndAcademicYear(
-                    student.getId(), term, year);
-            
-            if (existingReport.isPresent()) {
-                reports.add(existingReport.get());
-                continue;
-            }
-
-            // Create new report
-            Report report = new Report();
-            report.setStudent(student);
-            report.setTerm(term);
-            report.setAcademicYear(year);
-            report.setClassTeacher(classGroup.getClassTeacher());
-            report.setFinalized(false);
-            
-            Report savedReport = reportRepository.save(report);
-            
-            // Create subject reports for each subject the student is enrolled in
-            List<StudentSubject> studentSubjects = studentSubjectRepository.findByStudentId(student.getId());
-            for (StudentSubject studentSubject : studentSubjects) {
-                Subject subject = studentSubject.getSubject();
-                SubjectReport subjectReport = new SubjectReport();
-                subjectReport.setReport(savedReport);
-                subjectReport.setSubject(subject);
-                subjectReportRepository.save(subjectReport);
-            }
-            
-            reports.add(savedReport);
-        }
+    public List<StudentReportDTO> getClassReports(String form, String section, String term, String year, String username) {
+        // Get all students in the class
+        List<Student> students = studentRepository.findByFormAndSectionAndYear(form, section, year);
         
-        return reports;
+        return students.stream()
+                .map(student -> createStudentReportDTO(student, term, year))
+                .collect(Collectors.toList());
     }
 
-    public List<Report> getStudentReports(Long studentId) {
-        return reportRepository.findByStudentId(studentId);
-    }
-
-    public Report getReportById(Long reportId) {
-        return reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
-    }
-
-    public SubjectReport addSubjectComment(Long reportId, Long subjectId, String comment, Long teacherId) {
-        SubjectReport subjectReport = subjectReportRepository.findByReportIdAndSubjectId(reportId, subjectId)
-                .orElseThrow(() -> new RuntimeException("Subject report not found"));
+    public List<StudentReportDTO> getSubjectReports(Long subjectId, String form, String section, String term, String year, String username) {
+        // Get all students in the class
+        List<Student> students = studentRepository.findByFormAndSectionAndYear(form, section, year);
         
-        Teacher teacher = teacherRepository.findById(teacherId)
+        return students.stream()
+                .map(student -> createStudentReportDTO(student, term, year))
+                .collect(Collectors.toList());
+    }
+
+    private StudentReportDTO createStudentReportDTO(Student student, String term, String year) {
+        // Find or create report for this student, term, and year
+        Report report = reportRepository.findByStudentIdAndTermAndAcademicYear(student.getId(), term, year)
+                .orElseGet(() -> {
+                    Report newReport = new Report();
+                    newReport.setStudent(student);
+                    newReport.setTerm(term);
+                    newReport.setAcademicYear(year);
+                    newReport.setFinalized(false);
+                    return reportRepository.save(newReport);
+                });
+        
+        StudentReportDTO dto = new StudentReportDTO();
+        dto.setId(report.getId()); // Set the actual report ID
+        dto.setStudentId(student.getId());
+        dto.setStudentName(student.getFirstName() + " " + student.getLastName());
+        dto.setForm(student.getForm());
+        dto.setSection(student.getSection());
+        dto.setTerm(term);
+        dto.setAcademicYear(year);
+        dto.setFinalized(report.isFinalized());
+        dto.setOverallComment(report.getOverallComment());
+        
+        // Get student's subjects from StudentSubject relationships
+        List<StudentSubject> studentSubjects = studentSubjectRepository.findByStudentId(student.getId());
+        List<SubjectReportDTO> subjectReports = studentSubjects.stream()
+                .map(studentSubject -> {
+                    Subject subject = studentSubject.getSubject();
+                    SubjectReportDTO subjectDto = new SubjectReportDTO();
+                    subjectDto.setSubjectId(subject.getId());
+                    subjectDto.setSubjectName(subject.getName());
+                    subjectDto.setSubjectCode(subject.getCode());
+                    
+                    // Get assessments for this student and subject
+                    try {
+                        List<Assessment> assessments = assessmentRepository.findByStudentSubjectTermAndYear(
+                                student.getId(), subject.getId(), term, year);
+                        
+                        // Calculate marks
+                        double courseworkTotal = 0, examTotal = 0;
+                        int courseworkCount = 0, examCount = 0;
+                        
+                        for (Assessment assessment : assessments) {
+                            double percentage = (assessment.getScore() / assessment.getMaxScore()) * 100;
+                            if ("COURSEWORK".equals(assessment.getType().name())) {
+                                courseworkTotal += percentage;
+                                courseworkCount++;
+                            } else if ("FINAL_EXAM".equals(assessment.getType().name())) {
+                                examTotal += percentage;
+                                examCount++;
+                            }
+                        }
+                        
+                        if (courseworkCount > 0) subjectDto.setCourseworkMark(courseworkTotal / courseworkCount);
+                        if (examCount > 0) subjectDto.setExamMark(examTotal / examCount);
+                        
+                        // Calculate final mark
+                        double finalMark = 0;
+                        if (subjectDto.getCourseworkMark() != null && subjectDto.getExamMark() != null) {
+                            finalMark = (subjectDto.getCourseworkMark() * 0.4) + (subjectDto.getExamMark() * 0.6);
+                        } else if (subjectDto.getCourseworkMark() != null) {
+                            finalMark = subjectDto.getCourseworkMark();
+                        } else if (subjectDto.getExamMark() != null) {
+                            finalMark = subjectDto.getExamMark();
+                        }
+                        
+                        subjectDto.setFinalMark(finalMark);
+                    } catch (Exception e) {
+                        // If there's an error, just set final mark to 0
+                        subjectDto.setFinalMark(0.0);
+                    }
+                    
+                    return subjectDto;
+                })
+                .collect(Collectors.toList());
+        
+        dto.setSubjectReports(subjectReports);
+        return dto;
+    }
+
+    public void addSubjectComment(SubjectCommentDTO commentDTO, String username) {
+        Teacher teacher = teacherRepository.findByUserUsername(username)
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
         
-        subjectReport.setTeacherComment(comment);
+        // Find or create report
+        Report report = findOrCreateReport(commentDTO.getReportId(), teacher);
+        
+        // Find or create subject report
+        SubjectReport subjectReport = report.getSubjectReports().stream()
+                .filter(sr -> sr.getSubject().getId().equals(commentDTO.getSubjectId()))
+                .findFirst()
+                .orElseGet(() -> {
+                    Subject subject = subjectRepository.findById(commentDTO.getSubjectId())
+                            .orElseThrow(() -> new RuntimeException("Subject not found"));
+                    
+                    SubjectReport newSubjectReport = new SubjectReport();
+                    newSubjectReport.setReport(report);
+                    newSubjectReport.setSubject(subject);
+                    
+                    // Calculate and set marks from assessments
+                    try {
+                        List<Assessment> assessments = assessmentRepository.findByStudentSubjectTermAndYear(
+                                report.getStudent().getId(), subject.getId(), report.getTerm(), report.getAcademicYear());
+                        
+                        double courseworkTotal = 0, examTotal = 0;
+                        int courseworkCount = 0, examCount = 0;
+                        
+                        for (Assessment assessment : assessments) {
+                            double percentage = (assessment.getScore() / assessment.getMaxScore()) * 100;
+                            if ("COURSEWORK".equals(assessment.getType().name())) {
+                                courseworkTotal += percentage;
+                                courseworkCount++;
+                            } else if ("FINAL_EXAM".equals(assessment.getType().name())) {
+                                examTotal += percentage;
+                                examCount++;
+                            }
+                        }
+                        
+                        if (courseworkCount > 0) {
+                            newSubjectReport.setCourseworkMark(courseworkTotal / courseworkCount);
+                        }
+                        if (examCount > 0) {
+                            newSubjectReport.setExamMark(examTotal / examCount);
+                        }
+                        
+                        // Calculate total mark
+                        double totalMark = 0;
+                        if (newSubjectReport.getCourseworkMark() != null && newSubjectReport.getExamMark() != null) {
+                            totalMark = (newSubjectReport.getCourseworkMark() * 0.4) + (newSubjectReport.getExamMark() * 0.6);
+                        } else if (newSubjectReport.getCourseworkMark() != null) {
+                            totalMark = newSubjectReport.getCourseworkMark();
+                        } else if (newSubjectReport.getExamMark() != null) {
+                            totalMark = newSubjectReport.getExamMark();
+                        }
+                        
+                        newSubjectReport.setTotalMark(totalMark);
+                        
+                        // Set grade based on total mark
+                        if (totalMark >= 75) newSubjectReport.setGrade("A");
+                        else if (totalMark >= 60) newSubjectReport.setGrade("B");
+                        else if (totalMark >= 50) newSubjectReport.setGrade("C");
+                        else if (totalMark >= 40) newSubjectReport.setGrade("D");
+                        else if (totalMark >= 30) newSubjectReport.setGrade("E");
+                        else newSubjectReport.setGrade("U");
+                        
+                    } catch (Exception e) {
+                        // If error calculating marks, set defaults
+                        newSubjectReport.setCourseworkMark(0.0);
+                        newSubjectReport.setExamMark(0.0);
+                        newSubjectReport.setTotalMark(0.0);
+                        newSubjectReport.setGrade("N/A");
+                    }
+                    
+                    report.getSubjectReports().add(newSubjectReport);
+                    return newSubjectReport;
+                });
+        
+        subjectReport.setTeacherComment(commentDTO.getComment());
         subjectReport.setTeacher(teacher);
-        
-        return subjectReportRepository.save(subjectReport);
+        reportRepository.save(report);
     }
 
-    public Report addOverallComment(Long reportId, String comment, Long teacherId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
+    public void addOverallComment(OverallCommentDTO commentDTO, String username) {
+        Teacher teacher = teacherRepository.findByUserUsername(username)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
         
-        report.setOverallComment(comment);
-        
-        return reportRepository.save(report);
+        Report report = findOrCreateReport(commentDTO.getReportId(), teacher);
+        report.setOverallComment(commentDTO.getComment());
+        report.setClassTeacher(teacher);
+        reportRepository.save(report);
     }
 
-    public Report finalizeReport(Long reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
+    public void finalizeReport(Long reportId, String username) {
+        Teacher teacher = teacherRepository.findByUserUsername(username)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
         
+        Report report = findOrCreateReport(reportId, teacher);
         report.setFinalized(true);
-        
-        return reportRepository.save(report);
+        Report savedReport = reportRepository.save(report);
+        System.out.println("Report finalized - ID: " + savedReport.getId() + ", Finalized: " + savedReport.isFinalized());
     }
     
-    public Report addPrincipalComment(Long reportId, String comment) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
-        
-        report.setPrincipalComment(comment);
-        
-        return reportRepository.save(report);
-    }
-    
-    public Report updateAttendance(Long reportId, Integer attendanceDays, Integer totalSchoolDays) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
-        
-        report.setAttendanceDays(attendanceDays);
-        report.setTotalSchoolDays(totalSchoolDays);
-        
-        return reportRepository.save(report);
-    }
-    
-    public List<Report> getClassReports(Long classGroupId, String term, String year) {
-        ClassGroup classGroup = classGroupRepository.findById(classGroupId)
-                .orElseThrow(() -> new RuntimeException("Class group not found"));
-        
-        return reportRepository.findByFormAndSectionAndTermAndAcademicYear(
-                classGroup.getForm(), classGroup.getSection(), term, year);
-    }
-    
-    public Report updatePaymentStatus(Long reportId, String paymentStatus) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
-        
-        report.setPaymentStatus(paymentStatus);
-        
-        return reportRepository.save(report);
-    }
-    
-    public SubjectReport addTeacherSignature(Long reportId, Long subjectId, String signatureUrl) {
-        SubjectReport subjectReport = subjectReportRepository.findByReportIdAndSubjectId(reportId, subjectId)
-                .orElseThrow(() -> new RuntimeException("Subject report not found"));
-        
-        subjectReport.setTeacherSignatureUrl(signatureUrl);
-        
-        return subjectReportRepository.save(subjectReport);
-    }
-    
-    public Report addClassTeacherSignature(Long reportId, String signatureUrl) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
-        
-        report.setClassTeacherSignatureUrl(signatureUrl);
-        
-        return reportRepository.save(report);
-    }
-    
-    public boolean isClassTeacherForReport(Long teacherId, Long reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
-        
-        return report.getClassTeacher() != null && 
-               report.getClassTeacher().getId().equals(teacherId);
+    private Report findOrCreateReport(Long reportId, Teacher teacher) {
+        return reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found with id: " + reportId));
     }
 }

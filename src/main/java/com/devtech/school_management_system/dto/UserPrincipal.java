@@ -23,7 +23,7 @@ public class UserPrincipal implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().name()))  // Convert ERole to String
+                .map(role -> new SimpleGrantedAuthority(role.getName().name()))  // ERole already has ROLE_ prefix
                 .collect(Collectors.toList());
     }
 

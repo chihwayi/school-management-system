@@ -149,5 +149,11 @@ public class StudentController {
     public List<StudentSubject> hybridAssignSubjects(@RequestBody StudentSubjectAssignmentDTO assignmentDTO) {
         return studentService.hybridAssignSubjects(assignmentDTO);
     }
+
+    @GetMapping("/{studentId}/subject/{subjectId}/relationship")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    public StudentSubject getStudentSubjectRelationship(@PathVariable Long studentId, @PathVariable Long subjectId) {
+        return studentService.getStudentSubjectRelationship(studentId, subjectId);
+    }
 }
 

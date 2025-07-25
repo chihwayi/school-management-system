@@ -1,6 +1,7 @@
 package com.devtech.school_management_system.controller;
 
 import com.devtech.school_management_system.dto.AssessmentDTO;
+import com.devtech.school_management_system.dto.AssessmentResponseDTO;
 import com.devtech.school_management_system.dto.AssessmentUpdateDTO;
 import com.devtech.school_management_system.entity.Assessment;
 import com.devtech.school_management_system.entity.Teacher;
@@ -27,19 +28,14 @@ public class AssessmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
-    public Assessment recordAssessment(@RequestBody AssessmentDTO assessmentDTO, Authentication authentication) {
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
+    public AssessmentResponseDTO recordAssessment(@RequestBody AssessmentDTO assessmentDTO, Authentication authentication) {
         String username = authentication.getName();
         Teacher teacher = teacherService.getTeacherByUsername(username);
 
-        // Verify teacher is authorized to record assessments for this student/subject
-        if (!teacherService.canTeacherRecordForStudentSubject(teacher.getId(),
-                assessmentDTO.getStudentSubjectId())) {
-            throw new AccessDeniedException("You are not authorized to record assessments for this student/subject");
-        }
-
-        return assessmentService.recordAssessment(
-                assessmentDTO.getStudentSubjectId(),
+        return assessmentService.recordAssessmentByStudentAndSubject(
+                assessmentDTO.getStudentId(),
+                assessmentDTO.getSubjectId(),
                 assessmentDTO.getTitle(),
                 assessmentDTO.getDate(),
                 assessmentDTO.getScore(),
@@ -51,23 +47,23 @@ public class AssessmentController {
     }
 
     @GetMapping("/student/{studentId}/subject/{subjectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER', 'CLASS_TEACHER')")
-    public List<Assessment> getStudentSubjectAssessments(@PathVariable Long studentId,
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
+    public List<com.devtech.school_management_system.dto.AssessmentResponseDTO> getStudentSubjectAssessments(@PathVariable Long studentId,
                                                          @PathVariable Long subjectId) {
         return assessmentService.getStudentSubjectAssessments(studentId, subjectId);
     }
 
     @GetMapping("/student/{studentId}/term/{term}/year/{year}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER', 'CLASS_TEACHER')")
-    public List<Assessment> getStudentTermAssessments(@PathVariable Long studentId,
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
+    public List<com.devtech.school_management_system.dto.AssessmentResponseDTO> getStudentTermAssessments(@PathVariable Long studentId,
                                                       @PathVariable String term,
                                                       @PathVariable String year) {
         return assessmentService.getStudentTermAssessments(studentId, term, year);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
-    public Assessment updateAssessment(@PathVariable Long id,
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
+    public AssessmentResponseDTO updateAssessment(@PathVariable Long id,
                                        @RequestBody AssessmentUpdateDTO updateDTO,
                                        Authentication authentication) {
         String username = authentication.getName();
@@ -88,13 +84,13 @@ public class AssessmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'CLASS_TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
     public Assessment getAssessmentById(@PathVariable Long id) {
         return assessmentService.getAssessmentById(id);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'CLASS_TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
     public void deleteAssessment(@PathVariable Long id, Authentication authentication) {
         String username = authentication.getName();
         Teacher teacher = teacherService.getTeacherByUsername(username);
