@@ -42,6 +42,9 @@ public class School {
     @Column(name = "background_path")
     private String backgroundPath;
 
+    @Column(name = "ministry_logo_path")
+    private String ministryLogoPath;
+
     @Column(nullable = false)
     private boolean configured = false;
 
@@ -87,6 +90,9 @@ public class School {
 
     public String getBackgroundPath() { return backgroundPath; }
     public void setBackgroundPath(String backgroundPath) { this.backgroundPath = backgroundPath; }
+
+    public String getMinistryLogoPath() { return ministryLogoPath; }
+    public void setMinistryLogoPath(String ministryLogoPath) { this.ministryLogoPath = ministryLogoPath; }
 
     public boolean isConfigured() { return configured; }
     public void setConfigured(boolean configured) { this.configured = configured; }

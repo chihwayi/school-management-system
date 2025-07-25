@@ -38,6 +38,10 @@ public class SchoolServiceImpl implements SchoolService {
 
     @Override
     public School setupSchool(SchoolConfigDTO schoolConfigDTO, MultipartFile logo, MultipartFile background) throws IOException {
+        return setupSchool(schoolConfigDTO, logo, background, null);
+    }
+
+    public School setupSchool(SchoolConfigDTO schoolConfigDTO, MultipartFile logo, MultipartFile background, MultipartFile ministryLogo) throws IOException {
         if (isSchoolConfigured()) {
             throw new IllegalStateException("School is already configured");
         }
@@ -55,11 +59,20 @@ public class SchoolServiceImpl implements SchoolService {
             school.setBackgroundPath(backgroundPath);
         }
 
+        if (ministryLogo != null && !ministryLogo.isEmpty()) {
+            String ministryLogoPath = saveFile(ministryLogo, "ministry_logo");
+            school.setMinistryLogoPath(ministryLogoPath);
+        }
+
         return schoolRepository.save(school);
     }
 
     @Override
     public School updateSchool(Long id, SchoolConfigDTO schoolConfigDTO, MultipartFile logo, MultipartFile background) throws IOException {
+        return updateSchool(id, schoolConfigDTO, logo, background, null);
+    }
+
+    public School updateSchool(Long id, SchoolConfigDTO schoolConfigDTO, MultipartFile logo, MultipartFile background, MultipartFile ministryLogo) throws IOException {
         School school = schoolRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + id));
 
@@ -81,6 +94,15 @@ public class SchoolServiceImpl implements SchoolService {
             }
             String backgroundPath = saveFile(background, "background");
             school.setBackgroundPath(backgroundPath);
+        }
+
+        if (ministryLogo != null && !ministryLogo.isEmpty()) {
+            // Delete old ministry logo if exists
+            if (school.getMinistryLogoPath() != null) {
+                deleteFile(school.getMinistryLogoPath());
+            }
+            String ministryLogoPath = saveFile(ministryLogo, "ministry_logo");
+            school.setMinistryLogoPath(ministryLogoPath);
         }
 
         return schoolRepository.save(school);
