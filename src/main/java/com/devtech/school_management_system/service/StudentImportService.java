@@ -177,20 +177,7 @@ public class StudentImportService {
         student.setLevel(level.trim());
         student.setAcademicYear(academicYear.trim());
 
-        // Optional fields
-        String dobStr = getCellValue(row, 7);
-        if (!isEmpty(dobStr)) {
-            try {
-                student.setDateOfBirth(LocalDate.parse(dobStr));
-            } catch (Exception e) {
-                // Skip invalid date
-            }
-        }
-
-        student.setGender(getCellValue(row, 8));
-        student.setAddress(getCellValue(row, 9));
-        student.setPhone(getCellValue(row, 10));
-        student.setEmail(getCellValue(row, 11));
+        // Set enrollment date
         student.setEnrollmentDate(LocalDate.now());
 
         return studentRepository.save(student);
