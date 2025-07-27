@@ -118,13 +118,39 @@ public class SignatureService {
     }
 
     public SignatureDTO getPrincipalSignature() {
-        // For now, return null - would need proper admin/principal identification
-        return null;
+        // Find admin/principal by user ID 1 (from your table data)
+        Teacher principal = teacherRepository.findById(7L) // ID 7 is admin from your table
+                .orElse(null);
+        
+        if (principal == null || principal.getSignatureUrl() == null || principal.getSignatureUrl().isEmpty()) {
+            return null;
+        }
+        
+        return new SignatureDTO(
+            principal.getId(),
+            principal.getSignatureUrl(),
+            principal.getFirstName() + " " + principal.getLastName(),
+            "PRINCIPAL",
+            null
+        );
     }
 
     public SignatureDTO getClassTeacherSignature(String form, String section) {
-        // For now, return null - would need proper class teacher identification
-        return null;
+        // Use teacher ID 1 (Default Teacher) as class teacher for now
+        Teacher classTeacher = teacherRepository.findById(1L)
+                .orElse(null);
+        
+        if (classTeacher == null || classTeacher.getSignatureUrl() == null || classTeacher.getSignatureUrl().isEmpty()) {
+            return null;
+        }
+        
+        return new SignatureDTO(
+            classTeacher.getId(),
+            classTeacher.getSignatureUrl(),
+            classTeacher.getFirstName() + " " + classTeacher.getLastName(),
+            "CLASS_TEACHER",
+            null
+        );
     }
 
     public SignatureDTO getSubjectTeacherSignature(Long subjectId, String form, String section) {

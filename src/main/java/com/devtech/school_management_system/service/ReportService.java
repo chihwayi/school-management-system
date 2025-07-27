@@ -81,58 +81,45 @@ public class ReportService {
         dto.setFinalized(report.isFinalized());
         dto.setOverallComment(report.getOverallComment());
         
-        // Get student's subjects from StudentSubject relationships
-        List<StudentSubject> studentSubjects = studentSubjectRepository.findByStudentId(student.getId());
-        List<SubjectReportDTO> subjectReports = studentSubjects.stream()
-                .map(studentSubject -> {
-                    Subject subject = studentSubject.getSubject();
-                    SubjectReportDTO subjectDto = new SubjectReportDTO();
-                    subjectDto.setSubjectId(subject.getId());
-                    subjectDto.setSubjectName(subject.getName());
-                    subjectDto.setSubjectCode(subject.getCode());
-                    
-                    // Get assessments for this student and subject
-                    try {
-                        List<Assessment> assessments = assessmentRepository.findByStudentSubjectTermAndYear(
-                                student.getId(), subject.getId(), term, year);
-                        
-                        // Calculate marks
-                        double courseworkTotal = 0, examTotal = 0;
-                        int courseworkCount = 0, examCount = 0;
-                        
-                        for (Assessment assessment : assessments) {
-                            double percentage = (assessment.getScore() / assessment.getMaxScore()) * 100;
-                            if ("COURSEWORK".equals(assessment.getType().name())) {
-                                courseworkTotal += percentage;
-                                courseworkCount++;
-                            } else if ("FINAL_EXAM".equals(assessment.getType().name())) {
-                                examTotal += percentage;
-                                examCount++;
-                            }
-                        }
-                        
-                        if (courseworkCount > 0) subjectDto.setCourseworkMark(courseworkTotal / courseworkCount);
-                        if (examCount > 0) subjectDto.setExamMark(examTotal / examCount);
-                        
-                        // Calculate final mark
-                        double finalMark = 0;
-                        if (subjectDto.getCourseworkMark() != null && subjectDto.getExamMark() != null) {
-                            finalMark = (subjectDto.getCourseworkMark() * 0.4) + (subjectDto.getExamMark() * 0.6);
-                        } else if (subjectDto.getCourseworkMark() != null) {
-                            finalMark = subjectDto.getCourseworkMark();
-                        } else if (subjectDto.getExamMark() != null) {
-                            finalMark = subjectDto.getExamMark();
-                        }
-                        
-                        subjectDto.setFinalMark(finalMark);
-                    } catch (Exception e) {
-                        // If there's an error, just set final mark to 0
+        // Find existing report for this student, term, and year
+        Report existingReport = reportRepository.findByStudentIdAndTermAndAcademicYear(student.getId(), term, year)
+                .orElse(null);
+        
+        List<SubjectReportDTO> subjectReports;
+        
+        if (existingReport != null && !existingReport.getSubjectReports().isEmpty()) {
+            // Use existing subject reports with comments
+            subjectReports = existingReport.getSubjectReports().stream()
+                    .map(subjectReport -> {
+                        SubjectReportDTO subjectDto = new SubjectReportDTO();
+                        subjectDto.setId(subjectReport.getId());
+                        subjectDto.setSubjectId(subjectReport.getSubject().getId());
+                        subjectDto.setSubjectName(subjectReport.getSubject().getName());
+                        subjectDto.setSubjectCode(subjectReport.getSubject().getCode());
+                        subjectDto.setCourseworkMark(subjectReport.getCourseworkMark());
+                        subjectDto.setExamMark(subjectReport.getExamMark());
+                        subjectDto.setFinalMark(subjectReport.getTotalMark());
+                        subjectDto.setComment(subjectReport.getTeacherComment()); // Include teacher comment
+                        subjectDto.setTeacherId(subjectReport.getTeacher() != null ? subjectReport.getTeacher().getId() : null);
+                        subjectDto.setTeacherName(subjectReport.getTeacher() != null ? subjectReport.getTeacher().getFirstName() + " " + subjectReport.getTeacher().getLastName() : null);
+                        return subjectDto;
+                    })
+                    .collect(Collectors.toList());
+        } else {
+            // Fallback to StudentSubject relationships if no report exists
+            List<StudentSubject> studentSubjects = studentSubjectRepository.findByStudentId(student.getId());
+            subjectReports = studentSubjects.stream()
+                    .map(studentSubject -> {
+                        Subject subject = studentSubject.getSubject();
+                        SubjectReportDTO subjectDto = new SubjectReportDTO();
+                        subjectDto.setSubjectId(subject.getId());
+                        subjectDto.setSubjectName(subject.getName());
+                        subjectDto.setSubjectCode(subject.getCode());
                         subjectDto.setFinalMark(0.0);
-                    }
-                    
-                    return subjectDto;
-                })
-                .collect(Collectors.toList());
+                        return subjectDto;
+                    })
+                    .collect(Collectors.toList());
+        }
         
         dto.setSubjectReports(subjectReports);
         return dto;
