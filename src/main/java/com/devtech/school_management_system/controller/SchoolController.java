@@ -66,6 +66,16 @@ public class SchoolController {
         }
     }
 
+    @PostMapping(value = "/setup", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> setupSchoolJson(@RequestBody SchoolConfigDTO schoolConfigDTO) {
+        try {
+            School school = schoolService.setupSchool(schoolConfigDTO, null, null);
+            return ResponseEntity.ok(school);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateSchool(
