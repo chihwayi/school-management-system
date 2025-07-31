@@ -2,6 +2,8 @@ package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.dto.StudentUpdateDTO;
 import com.devtech.school_management_system.dto.StudentSubjectAssignmentDTO;
+import com.devtech.school_management_system.dto.StudentRegistrationDTO;
+import com.devtech.school_management_system.dto.GuardianDTO;
 import com.devtech.school_management_system.entity.*;
 import com.devtech.school_management_system.exception.ResourceNotFoundException;
 import com.devtech.school_management_system.repository.*;
@@ -22,16 +24,31 @@ public class StudentService {
     private final ClassGroupRepository classGroupRepository;
     private final SubjectRepository subjectRepository;
     private final StudentSubjectRepository studentSubjectRepository;
+    private final GuardianRepository guardianRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final FeePaymentRepository feePaymentRepository;
+    private final ReportRepository reportRepository;
+    private final AttendanceRepository attendanceRepository;
 
     @Autowired
     public StudentService(StudentRepository studentRepository,
                           ClassGroupRepository classGroupRepository,
                           SubjectRepository subjectRepository,
-                          StudentSubjectRepository studentSubjectRepository) {
+                          StudentSubjectRepository studentSubjectRepository,
+                          GuardianRepository guardianRepository,
+                          AssessmentRepository assessmentRepository,
+                          FeePaymentRepository feePaymentRepository,
+                          ReportRepository reportRepository,
+                          AttendanceRepository attendanceRepository) {
         this.studentRepository = studentRepository;
         this.classGroupRepository = classGroupRepository;
         this.subjectRepository = subjectRepository;
         this.studentSubjectRepository = studentSubjectRepository;
+        this.guardianRepository = guardianRepository;
+        this.assessmentRepository = assessmentRepository;
+        this.feePaymentRepository = feePaymentRepository;
+        this.reportRepository = reportRepository;
+        this.attendanceRepository = attendanceRepository;
     }
 
     public List<Student> getAllStudents() {
@@ -69,6 +86,38 @@ public class StudentService {
         return studentRepository.save(student);
     }
 
+    public Student createStudentWithGuardians(StudentRegistrationDTO registrationDTO) {
+        // Create the student first
+        Student student = createStudent(
+                registrationDTO.getFirstName(),
+                registrationDTO.getLastName(),
+                registrationDTO.getStudentId(),
+                registrationDTO.getForm(),
+                registrationDTO.getSection(),
+                registrationDTO.getLevel(),
+                registrationDTO.getAcademicYear()
+        );
+
+        // Create guardians if provided
+        if (registrationDTO.getGuardians() != null && !registrationDTO.getGuardians().isEmpty()) {
+            for (GuardianDTO guardianDTO : registrationDTO.getGuardians()) {
+                Guardian guardian = new Guardian();
+                guardian.setName(guardianDTO.getName());
+                guardian.setRelationship(guardianDTO.getRelationship());
+                guardian.setPhoneNumber(guardianDTO.getPhoneNumber());
+                guardian.setWhatsappNumber(guardianDTO.getWhatsappNumber());
+                guardian.setPrimaryGuardian(guardianDTO.isPrimaryGuardian());
+                guardian.setStudent(student);
+                guardian.setCreatedAt(LocalDateTime.now());
+                guardian.setUpdatedAt(LocalDateTime.now());
+                
+                guardianRepository.save(guardian);
+            }
+        }
+
+        return student;
+    }
+
     public Student updateStudent(Long id, StudentUpdateDTO updateDTO) {
         Student student = getStudentById(id);
 
@@ -92,10 +141,33 @@ public class StudentService {
         return studentRepository.save(student);
     }
 
+    @Transactional
     public void deleteStudent(Long id) {
         if (!studentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Student not found with id: " + id);
         }
+        
+        // Delete related records first to avoid foreign key constraint violations
+        
+        // Delete fee payments
+        feePaymentRepository.deleteByStudentId(id);
+        
+        // Delete reports
+        reportRepository.deleteByStudentId(id);
+        
+        // Delete attendance records
+        attendanceRepository.deleteByStudentId(id);
+        
+        // Delete assessments (they depend on student-subject relationships)
+        assessmentRepository.deleteByStudentId(id);
+        
+        // Delete student-subject assignments
+        studentSubjectRepository.deleteByStudentId(id);
+        
+        // Delete guardians
+        guardianRepository.deleteByStudentId(id);
+        
+        // Finally delete the student
         studentRepository.deleteById(id);
     }
 

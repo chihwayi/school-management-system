@@ -35,4 +35,6 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
                                                             @Param("section") String section,
                                                             @Param("term") String term,
                                                             @Param("year") String year);
+    
+    void deleteByStudentId(Long studentId);
 }

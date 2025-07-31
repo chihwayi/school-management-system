@@ -1,6 +1,7 @@
 package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.dto.UserDTO;
+import com.devtech.school_management_system.dto.UserRegistrationDTO;
 import com.devtech.school_management_system.entity.Role;
 import com.devtech.school_management_system.entity.User;
 import com.devtech.school_management_system.enums.ERole;
@@ -81,6 +82,59 @@ public class UserService {
         user.setRoles(roles);
 
         return userRepository.save(user);
+    }
+
+    public UserDTO createUser(UserRegistrationDTO userRegistrationDTO) {
+        if (userRepository.existsByUsername(userRegistrationDTO.getUsername())) {
+            throw new RuntimeException("Username is already taken");
+        }
+        
+        if (userRepository.existsByEmail(userRegistrationDTO.getEmail())) {
+            throw new RuntimeException("Email is already in use");
+        }
+        
+        User user = new User();
+        user.setUsername(userRegistrationDTO.getUsername());
+        user.setEmail(userRegistrationDTO.getEmail());
+        user.setPassword(passwordEncoder.encode(userRegistrationDTO.getPassword()));
+        user.setEnabled(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        Set<Role> roles = new HashSet<>();
+        for (String roleName : userRegistrationDTO.getRoles()) {
+            try {
+                ERole eRole;
+                if (roleName.startsWith("ROLE_")) {
+                    eRole = ERole.valueOf(roleName);
+                } else {
+                    switch (roleName.toUpperCase()) {
+                        case "ADMIN":
+                            eRole = ERole.ROLE_ADMIN;
+                            break;
+                        case "CLERK":
+                            eRole = ERole.ROLE_CLERK;
+                            break;
+                        case "TEACHER":
+                            eRole = ERole.ROLE_TEACHER;
+                            break;
+                        case "CLASS_TEACHER":
+                            eRole = ERole.ROLE_CLASS_TEACHER;
+                            break;
+                        default:
+                            eRole = ERole.ROLE_USER;
+                    }
+                }
+                Role role = roleService.getRoleByName(eRole);
+                roles.add(role);
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Invalid role name: " + roleName);
+            }
+        }
+        user.setRoles(roles);
+        
+        User savedUser = userRepository.save(user);
+        return convertToDTO(savedUser);
     }
     
     public List<UserDTO> getAllUsers() {

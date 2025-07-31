@@ -42,4 +42,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
                                                                       @Param("section") String section,
                                                                       @Param("startDate") LocalDate startDate,
                                                                       @Param("endDate") LocalDate endDate);
+    
+    void deleteByStudentId(Long studentId);
 }

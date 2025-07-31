@@ -21,4 +21,6 @@ public interface GuardianRepository extends JpaRepository<Guardian, Long> {
     List<Guardian> findByPhoneNumber(String phoneNumber);
 
     List<Guardian> findByWhatsappNumber(String whatsappNumber);
+    
+    void deleteByStudentId(Long studentId);
 }

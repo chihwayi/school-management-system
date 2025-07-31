@@ -4,6 +4,7 @@ import com.devtech.school_management_system.dto.EmailUpdateDTO;
 import com.devtech.school_management_system.dto.PasswordResetDTO;
 import com.devtech.school_management_system.dto.RoleUpdateDTO;
 import com.devtech.school_management_system.dto.UserDTO;
+import com.devtech.school_management_system.dto.UserRegistrationDTO;
 import com.devtech.school_management_system.enums.ERole;
 import com.devtech.school_management_system.service.UserService;
 import org.springframework.http.MediaType;
@@ -35,6 +36,19 @@ public class UserManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserDTO getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username);
+    }
+
+    @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createUser(@RequestBody UserRegistrationDTO userRegistrationDTO) {
+        try {
+            UserDTO createdUser = userService.createUser(userRegistrationDTO);
+            return ResponseEntity.ok(createdUser);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/reset-password")

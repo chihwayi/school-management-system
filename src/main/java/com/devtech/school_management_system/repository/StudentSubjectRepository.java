@@ -26,4 +26,6 @@ public interface StudentSubjectRepository extends JpaRepository<StudentSubject, 
     List<StudentSubject> findBySubjectIdAndFormAndSection(@Param("subjectId") Long subjectId,
                                                           @Param("form") String form,
                                                           @Param("section") String section);
+    
+    void deleteByStudentId(Long studentId);
 }

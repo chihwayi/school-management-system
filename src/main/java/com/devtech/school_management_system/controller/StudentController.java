@@ -48,15 +48,7 @@ public class StudentController {
     @PostMapping("/create")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
     public Student createStudent(@RequestBody StudentRegistrationDTO registrationDTO) {
-        return studentService.createStudent(
-                registrationDTO.getFirstName(),
-                registrationDTO.getLastName(),
-                registrationDTO.getStudentId(),
-                registrationDTO.getForm(),
-                registrationDTO.getSection(),
-                registrationDTO.getLevel(),
-                registrationDTO.getAcademicYear()
-        );
+        return studentService.createStudentWithGuardians(registrationDTO);
     }
 
     @PutMapping("/{id}")

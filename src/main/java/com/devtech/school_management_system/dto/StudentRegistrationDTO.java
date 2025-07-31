@@ -11,6 +11,7 @@ public class StudentRegistrationDTO {
     private String level;
     private String academicYear;
     private List<Long> subjectIds; // Optional: list of subjects to assign
+    private List<GuardianDTO> guardians; // Guardian information
 
     public StudentRegistrationDTO() {
     }
@@ -87,5 +88,13 @@ public class StudentRegistrationDTO {
 
     public void setSubjectIds(List<Long> subjectIds) {
         this.subjectIds = subjectIds;
+    }
+
+    public List<GuardianDTO> getGuardians() {
+        return guardians;
+    }
+
+    public void setGuardians(List<GuardianDTO> guardians) {
+        this.guardians = guardians;
     }
 }

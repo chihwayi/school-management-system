@@ -41,4 +41,6 @@ public interface FeePaymentRepository extends JpaRepository<FeePayment, Long> {
     
     @Query("SELECT fp FROM FeePayment fp WHERE fp.term = :term AND fp.academicYear = :academicYear AND fp.balance > 0")
     List<FeePayment> findOutstandingPaymentsByTermAndAcademicYear(@Param("term") String term, @Param("academicYear") String academicYear);
+    
+    void deleteByStudentId(Long studentId);
 }
