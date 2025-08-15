@@ -1,0 +1,39 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build and test Frontend
+      run: |
+        cd school-management-frontend
+        docker build -f Dockerfile -t school-frontend:test .
+        
+    - name: Build and test Backend
+      run: |
+        cd school-management-system
+        docker build -f Dockerfile -t school-backend:test .
+        
+    - name: Test Docker Compose
+      run: |
+        docker-compose -f docker-compose.yml build
+        
+    - name: Run basic health checks
+      run: |
+        docker-compose -f docker-compose.yml up -d
+        sleep 30
+        docker-compose ps
+        docker-compose down
