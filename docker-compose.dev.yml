@@ -1,0 +1,41 @@
+
+
+services:
+  # Frontend with hot reload
+  frontend:
+    build:
+      context: ./school-management-frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./school-management-frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"
+
+  # Backend with hot reload
+  backend:
+    build:
+      context: ./school-management-system
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./school-management-system:/app
+      - ~/.m2:/root/.m2
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    ports:
+      - "8080:8080"
+      - "5005:5005"  # Debug port
+
+  # MySQL with persistent data
+  mysql:
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+
+volumes:
+  mysql_dev_data:
