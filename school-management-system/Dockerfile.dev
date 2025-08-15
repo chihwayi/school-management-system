@@ -1,0 +1,18 @@
+FROM maven:3.9.6-eclipse-temurin-21
+
+WORKDIR /app
+
+# Copy pom.xml first
+COPY pom.xml .
+
+# Download dependencies
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY src ./src
+
+# Expose ports
+EXPOSE 8080 5005
+
+# Start development server with hot reload
+CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"]
