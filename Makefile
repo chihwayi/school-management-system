@@ -40,8 +40,8 @@ logs:
 	@echo "📋 Viewing logs..."
 	@docker-compose logs -f
 
-# Show status
-status:
+# Show service status
+service-status:
 	@echo "🔍 Service status:"
 	@docker-compose ps
 
@@ -96,7 +96,7 @@ release:
 	@./scripts/release.sh
 
 # Show git status
-status:
+git-status:
 	@echo "📊 Git status:"
 	@git status
 
