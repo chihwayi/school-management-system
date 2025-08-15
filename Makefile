@@ -89,3 +89,18 @@ update:
 	@echo "🔄 Updating and restarting services..."
 	@docker-compose pull
 	@docker-compose up -d --build
+
+# Create a new release
+release:
+	@echo "🚀 Creating a new release..."
+	@./scripts/release.sh
+
+# Show git status
+status:
+	@echo "📊 Git status:"
+	@git status
+
+# Show recent commits
+log:
+	@echo "📝 Recent commits:"
+	@git log --oneline -10
