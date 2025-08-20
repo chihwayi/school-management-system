@@ -2,12 +2,12 @@ import api from './api';
 
 export const schoolSettingsService = {
   getSchoolSettings: async () => {
-    const response = await api.get('/api/school-settings');
+    const response = await api.get('/school-settings');
     return response.data;
   },
 
   updateSchoolSettings: async (settings: any) => {
-    const response = await api.put('/api/school-settings', settings);
+    const response = await api.put('/school-settings', settings);
     return response.data;
   },
 
@@ -16,7 +16,7 @@ export const schoolSettingsService = {
     formData.append('file', file);
     formData.append('type', type);
     
-    const response = await api.post('/api/school-settings/upload-logo', formData, {
+    const response = await api.post('/school-settings/upload-logo', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -29,7 +29,7 @@ export const schoolSettingsService = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await api.post('/api/school-settings/upload-signature', formData, {
+    const response = await api.post('/school-settings/upload-signature', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

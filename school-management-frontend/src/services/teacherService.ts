@@ -1,4 +1,5 @@
 import api from './api';
+import type { TeacherRegistrationDTO } from '../types';
 
 interface TeacherData {
   firstName: string;
@@ -48,7 +49,7 @@ export const teacherService = {
     return response.data;
   },
 
-  createTeacher: async (teacherData: TeacherData): Promise<Teacher> => {
+  createTeacher: async (teacherData: TeacherRegistrationDTO): Promise<Teacher> => {
     const response = await api.post('/teachers', teacherData);
     return response.data;
   },
@@ -68,23 +69,32 @@ export const teacherService = {
   },
   
   getTeacherAssignments: async (teacherId: number): Promise<TeacherAssignment[]> => {
+    console.log('teacherService.getTeacherAssignments called with teacherId:', teacherId);
     const response = await api.get(`/teachers/${teacherId}/assignments`);
+    console.log('teacherService.getTeacherAssignments response:', response.data);
     return response.data;
   },
   
   saveTeacherAssignments: async (teacherId: number, assignments: SubjectAssignment[]): Promise<TeacherAssignment[]> => {
     try {
+      console.log('=== TEACHER SERVICE DEBUG ===');
       console.log('Sending bulk assignment request:', {
         teacherId,
         assignments,
         url: `/teachers/${teacherId}/bulk-assignments`
       });
       
-      const response = await api.post(`/teachers/${teacherId}/bulk-assignments`, { assignments });
+      const requestBody = { assignments };
+      console.log('Request body being sent:', requestBody);
+      
+      const response = await api.post(`/teachers/${teacherId}/bulk-assignments`, requestBody);
       console.log('Bulk assignment response:', response.data);
+      console.log('Response status:', response.status);
+      console.log('=== END TEACHER SERVICE DEBUG ===');
       return response.data;
     } catch (error) {
       console.error('Error in saveTeacherAssignments:', error);
+      console.log('=== END TEACHER SERVICE DEBUG ===');
       throw error;
     }
   },
@@ -97,6 +107,11 @@ export const teacherService = {
 
   getAssignedSubjectsAndClasses: async (): Promise<TeacherAssignment[]> => {
     const response = await api.get('/teachers/assignments/current');
+    return response.data;
+  },
+
+  getAllTeacherAssignments: async (): Promise<TeacherAssignment[]> => {
+    const response = await api.get('/teachers/assignments/all');
     return response.data;
   },
 

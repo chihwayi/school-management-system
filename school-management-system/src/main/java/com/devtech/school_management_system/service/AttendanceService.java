@@ -3,6 +3,8 @@ package com.devtech.school_management_system.service;
 import com.devtech.school_management_system.entity.Attendance;
 import com.devtech.school_management_system.entity.Student;
 import com.devtech.school_management_system.entity.Guardian;
+import com.devtech.school_management_system.dto.AttendanceDTO;
+import com.devtech.school_management_system.dto.AttendanceStatistics;
 import com.devtech.school_management_system.exception.ResourceNotFoundException;
 import com.devtech.school_management_system.repository.AttendanceRepository;
 import com.devtech.school_management_system.repository.StudentRepository;
@@ -12,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -80,13 +84,34 @@ public class AttendanceService {
         return attendanceRepository.findByStudent(student);
     }
 
-    public List<Attendance> getAttendanceByDate(LocalDate date) {
+    public List<AttendanceDTO> getAttendanceByDate(LocalDate date) {
         // Check if the date is in the future
         if (date.isAfter(LocalDate.now())) {
             // Return empty list for future dates instead of throwing an error
             return List.of();
         }
-        return attendanceRepository.findByDate(date);
+        
+        List<Attendance> attendanceList = attendanceRepository.findByDate(date);
+        return attendanceList.stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    private AttendanceDTO convertToDTO(Attendance attendance) {
+        return new AttendanceDTO(
+                attendance.getId(),
+                attendance.getStudent().getId(),
+                attendance.getStudent().getFirstName(),
+                attendance.getStudent().getLastName(),
+                attendance.getStudent().getStudentId(),
+                attendance.getStudent().getForm(),
+                attendance.getStudent().getSection(),
+                attendance.getDate(),
+                attendance.isPresent(),
+                attendance.getMarkedBy(),
+                attendance.getCreatedAt(),
+                attendance.getUpdatedAt()
+        );
     }
 
     public List<Attendance> getAttendanceByStudentAndDateRange(Long studentId, LocalDate startDate, LocalDate endDate) {
@@ -153,5 +178,99 @@ public class AttendanceService {
 
     public List<Attendance> getAttendanceByClassAndDateRange(String form, String section, LocalDate startDate, LocalDate endDate) {
         return attendanceRepository.findByStudentFormAndStudentSectionAndDateBetween(form, section, startDate, endDate);
+    }
+
+    /**
+     * Calculate attendance statistics for a student within a term
+     */
+    public AttendanceStatistics calculateTermAttendance(Long studentId, String term, String academicYear) {
+        // Define term date ranges (you may need to adjust these based on your school calendar)
+        LocalDate startDate = getTermStartDate(term, academicYear);
+        LocalDate endDate = getTermEndDate(term, academicYear);
+        
+        List<Attendance> attendanceRecords = getAttendanceByStudentAndDateRange(studentId, startDate, endDate);
+        
+        int totalSchoolDays = calculateTotalSchoolDays(startDate, endDate);
+        int presentDays = (int) attendanceRecords.stream()
+                .filter(Attendance::isPresent)
+                .count();
+        int absentDays = (int) attendanceRecords.stream()
+                .filter(attendance -> !attendance.isPresent())
+                .count();
+        
+        double attendancePercentage = totalSchoolDays > 0 ? (double) presentDays / totalSchoolDays * 100 : 0.0;
+        
+        return new AttendanceStatistics(presentDays, absentDays, totalSchoolDays, attendancePercentage);
+    }
+
+    /**
+     * Get attendance statistics for all students in a class for a term
+     */
+    public Map<Long, AttendanceStatistics> getClassTermAttendance(String form, String section, String term, String academicYear) {
+        LocalDate startDate = getTermStartDate(term, academicYear);
+        LocalDate endDate = getTermEndDate(term, academicYear);
+        
+        List<Student> students = studentRepository.findByFormAndSection(form, section);
+        Map<Long, AttendanceStatistics> statistics = new HashMap<>();
+        
+        for (Student student : students) {
+            statistics.put(student.getId(), calculateTermAttendance(student.getId(), term, academicYear));
+        }
+        
+        return statistics;
+    }
+
+    /**
+     * Calculate total school days (excluding weekends and holidays)
+     */
+    private int calculateTotalSchoolDays(LocalDate startDate, LocalDate endDate) {
+        int schoolDays = 0;
+        LocalDate current = startDate;
+        
+        while (!current.isAfter(endDate)) {
+            // Exclude weekends (Saturday = 6, Sunday = 7)
+            if (current.getDayOfWeek().getValue() < 6) {
+                schoolDays++;
+            }
+            current = current.plusDays(1);
+        }
+        
+        return schoolDays;
+    }
+
+    /**
+     * Get term start date based on term and academic year
+     */
+    private LocalDate getTermStartDate(String term, String academicYear) {
+        int year = Integer.parseInt(academicYear);
+        
+        switch (term.toLowerCase()) {
+            case "term 1":
+                return LocalDate.of(year, 1, 15); // Adjust based on your school calendar
+            case "term 2":
+                return LocalDate.of(year, 5, 1);  // Adjust based on your school calendar
+            case "term 3":
+                return LocalDate.of(year, 9, 1);  // Adjust based on your school calendar
+            default:
+                return LocalDate.of(year, 1, 1);
+        }
+    }
+
+    /**
+     * Get term end date based on term and academic year
+     */
+    private LocalDate getTermEndDate(String term, String academicYear) {
+        int year = Integer.parseInt(academicYear);
+        
+        switch (term.toLowerCase()) {
+            case "term 1":
+                return LocalDate.of(year, 4, 30); // Adjust based on your school calendar
+            case "term 2":
+                return LocalDate.of(year, 8, 31); // Adjust based on your school calendar
+            case "term 3":
+                return LocalDate.of(year, 12, 31); // Adjust based on your school calendar
+            default:
+                return LocalDate.of(year, 12, 31);
+        }
     }
 }

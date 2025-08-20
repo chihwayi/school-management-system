@@ -93,6 +93,12 @@ public class TeacherController {
         return teacherService.getAssignedSubjectsAndClassesDTO(username);
     }
 
+    @GetMapping("/assignments/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    public List<TeacherSubjectClassDTO> getAllTeacherAssignments() {
+        return teacherAssignmentService.getAllTeacherAssignmentsDTO();
+    }
+
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
     public Object getAllTeachersWithDetails(@RequestParam(required = false) Boolean includeUser) {

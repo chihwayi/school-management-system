@@ -50,11 +50,18 @@ const SubjectDetailPage: React.FC = () => {
       setSubject(subjectData);
       
       // Load teachers, students, and classes for this subject
+      console.log('Loading subject details for subject ID:', subjectId);
+      
       const [subjectTeachers, subjectStudents, subjectClasses] = await Promise.all([
         subjectService.getTeachersBySubject(subjectId),
         subjectService.getStudentsBySubject(subjectId),
         subjectService.getClassesBySubject(subjectId)
       ]);
+      
+      console.log('Subject teachers loaded:', subjectTeachers);
+      console.log('Subject students loaded:', subjectStudents);
+      console.log('Subject classes loaded:', subjectClasses);
+      
       setTeachers(subjectTeachers);
       setStudents(subjectStudents);
       setClasses(subjectClasses);
@@ -254,7 +261,7 @@ const SubjectDetailPage: React.FC = () => {
           <Table.Body>
             {teachers.length > 0 ? (
               teachers.map(teacher => (
-                <Table.Row key={teacher.id}>
+                <Table.Row key={teacher.teacherId}>
                   <Table.Cell>
                     <div className="flex items-center">
                       <User className="h-4 w-4 text-gray-400 mr-2" />
@@ -267,7 +274,7 @@ const SubjectDetailPage: React.FC = () => {
                   <Table.Cell>
                     <div className="flex flex-wrap gap-1">
                       {teacher.classes?.map((className, index) => (
-                        <Badge key={`teacher-${teacher.id}-class-${index}`} className="bg-blue-100 text-blue-800">
+                        <Badge key={`teacher-${teacher.teacherId}-class-${className}-${index}`} className="bg-blue-100 text-blue-800">
                           {className}
                         </Badge>
                       ))}

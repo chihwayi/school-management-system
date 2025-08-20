@@ -73,7 +73,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private void initializeAdminUser() {
         if (!userRepository.existsByUsername("admin")) {
-            User admin = new User("admin", "admin@school.com", passwordEncoder.encode("admin123"));
+            User admin = new User("admin", "admin@school.com", passwordEncoder.encode("admin123"), "System", "Administrator");
             Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
                     .orElseThrow(() -> new RuntimeException("Admin role not found"));
             Role teacherRole = roleRepository.findByName(ERole.ROLE_TEACHER)
@@ -95,7 +95,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private void createUserIfNotExists(String username, String email, String password, ERole roleEnum) {
         if (!userRepository.existsByUsername(username)) {
-            User user = new User(username, email, passwordEncoder.encode(password));
+            User user = new User(username, email, passwordEncoder.encode(password), "User", "Default");
             Role role = roleRepository.findByName(roleEnum)
                     .orElseThrow(() -> new RuntimeException("Role not found: " + roleEnum));
             user.setRoles(Set.of(role));

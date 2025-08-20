@@ -272,79 +272,83 @@ const SubjectsPage: React.FC = () => {
 
       {/* Subjects Table */}
       <Card>
-        <Table>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Subject Code</Table.HeaderCell>
-              <Table.HeaderCell>Subject Name</Table.HeaderCell>
-              <Table.HeaderCell>Level</Table.HeaderCell>
-              <Table.HeaderCell>Category</Table.HeaderCell>
-              <Table.HeaderCell>Description</Table.HeaderCell>
-              <Table.HeaderCell>Actions</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {filteredSubjects.length > 0 ? (
-              filteredSubjects.map(subject => (
-                <Table.Row key={subject.id}>
-                  <Table.Cell>
-                    <div className="font-medium text-gray-900">{subject.code}</div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div className="font-medium text-gray-900">{subject.name}</div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge className={getLevelBadgeColor(subject.level)}>
-                      {subject.level.replace('_', ' ')}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge className={getCategoryBadgeColor(subject.category)}>
-                      {SUBJECT_CATEGORIES[subject.category]}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div className="text-gray-600 truncate max-w-xs">
-                      {subject.description || 'No description'}
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewSubject(subject.id)}
-                        className="p-2"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {canManageSubjects() && (
-                        <>
+        <div className="overflow-x-auto">
+          <div className="min-w-[1000px]">
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Subject Code</Table.HeaderCell>
+                  <Table.HeaderCell>Subject Name</Table.HeaderCell>
+                  <Table.HeaderCell>Level</Table.HeaderCell>
+                  <Table.HeaderCell>Category</Table.HeaderCell>
+                  <Table.HeaderCell>Description</Table.HeaderCell>
+                  <Table.HeaderCell className="min-w-[150px]">Actions</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {filteredSubjects.length > 0 ? (
+                  filteredSubjects.map(subject => (
+                    <Table.Row key={subject.id}>
+                      <Table.Cell>
+                        <div className="font-medium text-gray-900">{subject.code}</div>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <div className="font-medium text-gray-900">{subject.name}</div>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge className={getLevelBadgeColor(subject.level)}>
+                          {subject.level.replace('_', ' ')}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge className={getCategoryBadgeColor(subject.category)}>
+                          {SUBJECT_CATEGORIES[subject.category]}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <div className="text-gray-600 truncate max-w-xs">
+                          {subject.description || 'No description'}
+                        </div>
+                      </Table.Cell>
+                      <Table.Cell className="min-w-[150px]">
+                        <div className="flex space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleEditSubject(subject)}
+                            onClick={() => handleViewSubject(subject.id)}
                             className="p-2"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteSubject(subject.id)}
-                            className="p-2 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            ) : null}
-          </Table.Body>
-        </Table>
+                          {canManageSubjects() && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditSubject(subject)}
+                                className="p-2"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteSubject(subject.id)}
+                                className="p-2 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))
+                ) : null}
+              </Table.Body>
+            </Table>
+          </div>
+        </div>
         {filteredSubjects.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             No subjects found

@@ -26,28 +26,40 @@ A comprehensive school management system with React frontend and Spring Boot bac
 
 2. **Start all services**:
    ```bash
-   ./scripts/start.sh
+   npm run dev
+   ```
+   or
+   ```bash
+   ./dev.sh
    ```
 
 3. **Access the application**:
-   - Frontend: http://localhost
-   - Backend API: http://localhost:8080
+   - School Frontend: http://localhost:3000
+   - Admin Panel: http://localhost:5173
+   - School Backend API: http://localhost:8080/api
+   - Admin Backend API: http://localhost:8081/api
    - Database: localhost:3306
 
-### Alternative Manual Commands
+### Available Commands
 
 ```bash
-# Build and start all services
-docker-compose up --build -d
+# Start the complete system
+npm run dev
+
+# Check system status
+npm run status
 
 # View logs
-docker-compose logs -f
+npm run logs
 
-# Stop services
-docker-compose down
+# Stop all services
+npm run down
 
-# Stop and remove volumes (data will be lost)
-docker-compose down -v
+# Restart services
+npm run restart
+
+# Clean up everything
+npm run clean
 ```
 
 ## 📁 Project Structure
@@ -55,10 +67,8 @@ docker-compose down -v
 ```
 school/
 ├── docker-compose.yml          # Main orchestration file
-├── scripts/                    # Management scripts
-│   ├── start.sh               # Start all services
-│   ├── stop.sh                # Stop all services
-│   └── clean.sh               # Clean up everything
+├── dev.sh                     # Bulletproof startup script
+├── package.json               # NPM scripts for easy management
 ├── school-management-frontend/ # React frontend
 │   ├── Dockerfile             # Frontend container
 │   ├── nginx.conf             # Nginx configuration
@@ -85,9 +95,12 @@ The application uses the following environment variables:
 
 ### Ports
 
-- **80**: Frontend (React)
-- **8080**: Backend API (Spring Boot)
+- **3000**: School Frontend (React)
+- **5173**: Admin Panel Frontend (React)
+- **8080**: School Backend API (Spring Boot)
+- **8081**: Admin Backend API (Spring Boot)
 - **3306**: MySQL Database
+- **8000**: Nginx Proxy
 
 ### Volumes
 

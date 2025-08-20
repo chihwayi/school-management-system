@@ -4,7 +4,6 @@ import type { ClassGroup, Student } from '../types';
 export const classService = {
   getAllClassGroups: async (): Promise<ClassGroup[]> => {
     const response = await api.get('/classes/all');
-    console.log('API response for getAllClassGroups:', response.data);
     return response.data;
   },
 

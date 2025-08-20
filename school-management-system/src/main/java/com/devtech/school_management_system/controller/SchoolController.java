@@ -25,13 +25,30 @@ public class SchoolController {
         this.schoolService = schoolService;
     }
 
+    @Autowired
+    private com.devtech.school_management_system.service.TenantManagementService tenantManagementService;
+
     @GetMapping("/config")
     public ResponseEntity<?> getSchoolConfig() {
         try {
+            // Get tenant from context (set by TenantInterceptor)
+            String currentTenant = com.devtech.school_management_system.config.TenantContext.getCurrentTenant();
+            String currentDatabase = com.devtech.school_management_system.config.TenantContext.getCurrentDatabase();
+            System.out.println("SchoolController.getSchoolConfig() - Tenant: " + currentTenant + ", Database: " + currentDatabase);
+            
+            // Check if we're in a multi-tenant context
+            boolean tenantConfigured = false;
+            if (currentTenant != null && !"default".equals(currentTenant)) {
+                tenantConfigured = tenantManagementService.checkAndConfigureTenantDatabase();
+            }
+            
             boolean isConfigured = schoolService.isSchoolConfigured();
 
             Map<String, Object> response = new HashMap<>();
             response.put("configured", isConfigured);
+            response.put("tenant", currentTenant != null ? currentTenant : "default");
+            response.put("database", currentDatabase != null ? currentDatabase : "school_management_system");
+            response.put("tenantConfigured", tenantConfigured);
 
             if (isConfigured) {
                 School school = schoolService.getSchoolConfiguration();
@@ -42,10 +59,11 @@ public class SchoolController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // Handle case where no school exists in database
             Map<String, Object> response = new HashMap<>();
             response.put("configured", false);
             response.put("school", null);
+            response.put("tenant", "error");
+            response.put("error", e.getMessage());
             return ResponseEntity.ok(response);
         }
     }

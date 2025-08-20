@@ -1,0 +1,31 @@
+{
+  "name": "school-management-system",
+  "version": "1.0.0",
+  "description": "Multi-tenant School Management System with Admin Panel",
+  "scripts": {
+    "dev": "./dev.sh",
+    "start": "./dev.sh",
+    "up": "./dev.sh",
+    "down": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "restart": "docker-compose restart",
+    "status": "docker-compose ps",
+    "clean": "docker-compose down --remove-orphans && docker system prune -f"
+  },
+  "keywords": [
+    "school",
+    "management",
+    "multi-tenant",
+    "admin",
+    "panel",
+    "docker",
+    "spring-boot",
+    "react"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "docker": ">=20.0.0"
+  }
+}

@@ -5,7 +5,7 @@ import { guardianService } from '../../services/guardianService';
 import { reportService } from '../../services/reportService';
 import type { Student, Guardian, Report } from '../../types';
 import { Card, Button, Badge, Table, Modal } from '../../components/ui';
-import { GuardianForm } from '../../components/forms';
+import { GuardianForm, StudentEditForm } from '../../components/forms';
 import { ArrowLeft, Edit, Plus, Phone } from 'lucide-react';
 import { WhatsAppIcon } from '../../components/common';
 import { toast } from 'react-hot-toast';
@@ -18,6 +18,7 @@ const StudentDetailPage: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -28,17 +29,26 @@ const StudentDetailPage: React.FC = () => {
   const loadStudentDetails = async (studentId: number) => {
     try {
       setLoading(true);
-      const [studentData, guardiansData, reportsData] = await Promise.all([
+      
+      const [studentData, guardiansData] = await Promise.all([
         studentService.getStudentById(studentId),
-        guardianService.getGuardiansByStudent(studentId),
-        reportService.getStudentReports(studentId)
+        guardianService.getGuardiansByStudent(studentId)
       ]);
       
       setStudent(studentData);
       setGuardians(guardiansData);
-      setReports(reportsData);
+      
+      // Load student reports
+      try {
+        const reportsData = await reportService.getStudentReports(studentId);
+        setReports(reportsData);
+      } catch (error) {
+        console.error('Error loading student reports:', error);
+        setReports([]);
+      }
     } catch (error) {
-      toast.error('Failed to load student details');
+      console.error('Error loading student details:', error);
+      toast.error(`Failed to load student details: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -63,13 +73,15 @@ const StudentDetailPage: React.FC = () => {
       </Badge>
     ),
     actions: (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate(`/app/reports/${report.id}`)}
-      >
-        View Report
-      </Button>
+              <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/app/reports/${report.id}`, { 
+            state: { from: `/app/students/${student.id}` } 
+          })}
+        >
+          View Report
+        </Button>
     )
   }));
 
@@ -100,7 +112,7 @@ const StudentDetailPage: React.FC = () => {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/app/students/${student.id}/edit`)}
+                  onClick={() => setIsEditModalOpen(true)}
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit
@@ -223,6 +235,26 @@ const StudentDetailPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Edit Student Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Student"
+      >
+        <StudentEditForm
+          student={student}
+          onSubmit={async (data) => {
+            if (student) {
+              await studentService.updateStudent(student.id, data);
+              await loadStudentDetails(student.id);
+              setIsEditModalOpen(false);
+              toast.success('Student updated successfully');
+            }
+          }}
+          onCancel={() => setIsEditModalOpen(false)}
+        />
+      </Modal>
 
       {/* Guardian Form Modal */}
       <Modal

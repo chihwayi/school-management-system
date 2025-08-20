@@ -22,7 +22,8 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
     register,
     handleSubmit,
     formState: { errors },
-    watch
+    watch,
+    reset
   } = useForm<TeacherRegistrationDTO>({
     defaultValues: initialData ? {
       firstName: initialData.firstName,
@@ -39,13 +40,19 @@ const TeacherRegistrationForm: React.FC<TeacherRegistrationFormProps> = ({
   const handleFormSubmit = async (data: TeacherRegistrationDTO) => {
     try {
       await onSubmit(data);
+      reset();
     } catch (error) {
       // Error handling is done in the parent component
     }
   };
 
+  const onSubmitHandler = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmit(handleFormSubmit)(e);
+  };
+
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={onSubmitHandler} className="space-y-6">
       <Card>
         <div className="p-6">
           <div className="flex items-center mb-4">

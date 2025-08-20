@@ -104,7 +104,7 @@ const FeePaymentPage: React.FC = () => {
     const primaryColor = theme.primaryColor || '#3b82f6';
     const secondaryColor = theme.secondaryColor || '#1e40af';
     
-    const receiptId = `REC-${Date.now().toString().slice(-6)}`;
+    const receiptId = receiptData.receiptNumber || `REC-${Date.now().toString().slice(-6)}`;
     const formattedDate = new Date(receiptData.paymentDate).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
@@ -510,6 +510,10 @@ const FeePaymentPage: React.FC = () => {
             </div>
             
             <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="font-medium">Receipt #:</span>
+                <span className="font-mono text-blue-600">{receipt.receiptNumber || 'N/A'}</span>
+              </div>
               <div className="flex justify-between">
                 <span className="font-medium">Student:</span>
                 <span>{receipt.studentName}</span>

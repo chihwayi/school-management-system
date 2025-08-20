@@ -43,7 +43,8 @@ const StudentCreateForm: React.FC<StudentCreateFormProps> = ({
     watch
   } = useForm<StudentRegistrationDTO>({
     defaultValues: {
-      academicYear: getCurrentAcademicYear()
+      academicYear: getCurrentAcademicYear(),
+      enrollmentDate: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
     }
   });
 
@@ -158,6 +159,13 @@ const StudentCreateForm: React.FC<StudentCreateFormProps> = ({
                 label="Academic Year"
                 {...registerStudent('academicYear', { required: 'Academic year is required' })}
                 error={studentErrors.academicYear?.message}
+              />
+              
+              <Input
+                label="Enrollment Date"
+                type="date"
+                {...registerStudent('enrollmentDate')}
+                error={studentErrors.enrollmentDate?.message}
               />
             </div>
           </div>

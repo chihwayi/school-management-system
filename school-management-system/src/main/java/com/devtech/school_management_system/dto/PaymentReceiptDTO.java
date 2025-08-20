@@ -13,6 +13,7 @@ public class PaymentReceiptDTO {
     private LocalDate paymentDate;
     private BigDecimal monthlyFeeAmount;
     private String paymentStatus;
+    private String receiptNumber;
 
     // Constructors
     public PaymentReceiptDTO() {}
@@ -30,7 +31,7 @@ public class PaymentReceiptDTO {
     
     public PaymentReceiptDTO(String studentName, String className, String term, String month, 
                            BigDecimal amountPaid, BigDecimal balance, LocalDate paymentDate,
-                           BigDecimal monthlyFeeAmount, String paymentStatus) {
+                           BigDecimal monthlyFeeAmount, String paymentStatus, String receiptNumber) {
         this.studentName = studentName;
         this.className = className;
         this.term = term;
@@ -40,6 +41,7 @@ public class PaymentReceiptDTO {
         this.paymentDate = paymentDate;
         this.monthlyFeeAmount = monthlyFeeAmount;
         this.paymentStatus = paymentStatus;
+        this.receiptNumber = receiptNumber;
     }
 
     // Getters and Setters
@@ -69,4 +71,7 @@ public class PaymentReceiptDTO {
     
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getReceiptNumber() { return receiptNumber; }
+    public void setReceiptNumber(String receiptNumber) { this.receiptNumber = receiptNumber; }
 }

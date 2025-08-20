@@ -137,6 +137,23 @@ public class TeacherAssignmentService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
+    public List<TeacherSubjectClassDTO> getAllTeacherAssignmentsDTO() {
+        List<TeacherSubjectClass> assignments = teacherSubjectClassRepository.findAll();
+        return assignments.stream()
+                .map(tsc -> new TeacherSubjectClassDTO(
+                        tsc.getId(),
+                        tsc.getTeacher().getId(),
+                        tsc.getTeacher().getFullName(),
+                        tsc.getSubject().getId(),
+                        tsc.getSubject().getName(),
+                        tsc.getSubject().getCode(),
+                        tsc.getForm(),
+                        tsc.getSection(),
+                        tsc.getAcademicYear()
+                ))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     public TeacherSubjectClass getAssignmentForClass(Long subjectId, String form, String section, String year) {
         return teacherSubjectClassRepository.findBySubjectIdAndFormAndSectionAndAcademicYear(
                         subjectId, form, section, year)

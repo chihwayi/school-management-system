@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: test_admin_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: school_management_system_admin
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Admin Panel Backend
+  admin-backend:
+    build:
+      context: ./admin-panel/backend
+      dockerfile: Dockerfile
+    container_name: test_admin_backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/school_management_system_admin?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    ports:
+      - "8081:8080"
+    volumes:
+      - admin_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Admin Panel Frontend
+  admin-frontend:
+    build:
+      context: ./admin-panel/frontend
+      dockerfile: Dockerfile
+    container_name: test_admin_frontend
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:8081/api
+    ports:
+      - "8082:80"
+    depends_on:
+      admin-backend:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+    driver: local
+  admin_uploads:
+    driver: local

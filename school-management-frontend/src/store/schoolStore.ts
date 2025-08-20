@@ -58,9 +58,10 @@ export const useSchoolStore = create<SchoolState>()(
             checkPerformed: true
           });
         } catch (error: any) {
-          // If it's a 404 or no school found, set as not configured without error
-          if (error.response?.status === 404 || error.response?.status === 500 || 
-              error.response?.data?.message?.includes('not configured')) {
+          // If it's a 404, 412 (setup required), or no school found, set as not configured
+          if (error.response?.status === 404 || error.response?.status === 412 || error.response?.status === 500 || 
+              error.response?.data?.message?.includes('not configured') || 
+              error.response?.data?.setupRequired) {
             // Clear any cached school data
             localStorage.removeItem('school-storage');
             
@@ -69,7 +70,7 @@ export const useSchoolStore = create<SchoolState>()(
               isConfigured: false,
               theme: null,
               isLoading: false,
-              error: null, // Don't set error for expected 404
+              error: null,
               checkPerformed: true
             });
           } else {

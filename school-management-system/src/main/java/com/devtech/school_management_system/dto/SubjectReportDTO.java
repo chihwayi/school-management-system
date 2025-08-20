@@ -8,6 +8,8 @@ public class SubjectReportDTO {
     private Double courseworkMark;
     private Double examMark;
     private Double finalMark;
+    private String courseworkGrade;
+    private String examGrade;
     private String comment;
     private Long teacherId;
     private String teacherName;
@@ -16,7 +18,7 @@ public class SubjectReportDTO {
 
     public SubjectReportDTO(Long id, Long subjectId, String subjectName, String subjectCode,
                            Double courseworkMark, Double examMark, Double finalMark,
-                           String comment, Long teacherId, String teacherName) {
+                           String courseworkGrade, String examGrade, String comment, Long teacherId, String teacherName) {
         this.id = id;
         this.subjectId = subjectId;
         this.subjectName = subjectName;
@@ -24,6 +26,8 @@ public class SubjectReportDTO {
         this.courseworkMark = courseworkMark;
         this.examMark = examMark;
         this.finalMark = finalMark;
+        this.courseworkGrade = courseworkGrade;
+        this.examGrade = examGrade;
         this.comment = comment;
         this.teacherId = teacherId;
         this.teacherName = teacherName;
@@ -50,6 +54,12 @@ public class SubjectReportDTO {
 
     public Double getFinalMark() { return finalMark; }
     public void setFinalMark(Double finalMark) { this.finalMark = finalMark; }
+
+    public String getCourseworkGrade() { return courseworkGrade; }
+    public void setCourseworkGrade(String courseworkGrade) { this.courseworkGrade = courseworkGrade; }
+
+    public String getExamGrade() { return examGrade; }
+    public void setExamGrade(String examGrade) { this.examGrade = examGrade; }
 
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }

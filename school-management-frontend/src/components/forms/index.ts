@@ -8,6 +8,7 @@ export { default as SchoolSetupForm } from './SchoolSetupForm';
 export { default as UserRegistrationForm } from './UserRegistrationForm';
 export { default as TeacherRegistrationForm } from './TeacherRegistrationForm';
 export { default as StudentRegistrationForm } from './StudentRegistrationForm';
+export { default as StudentEditForm } from './StudentEditForm';
 
 // Academic Management Forms
 export { default as SubjectForm } from './SubjectForm';

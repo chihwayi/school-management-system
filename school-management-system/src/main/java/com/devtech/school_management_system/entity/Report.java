@@ -3,6 +3,7 @@ package com.devtech.school_management_system.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -68,6 +69,7 @@ public class Report {
     }
 
     public Report() {
+        this.subjectReports = new ArrayList<>();
     }
 
     public Report(Long id, Student student, String term, String academicYear, String overallComment, String principalComment, 

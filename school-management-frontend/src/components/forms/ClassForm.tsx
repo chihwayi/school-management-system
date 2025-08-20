@@ -23,10 +23,18 @@ const ClassForm: React.FC<ClassFormProps> = ({
   isLoading,
   error
 }) => {
-  const { data: sections } = useQuery({
-    queryKey: ['sections-active'],
-    queryFn: sectionService.getActiveSections,
+  const { data: sections, isLoading: sectionsLoading, error: sectionsError } = useQuery({
+    queryKey: ['sections'],
+    queryFn: sectionService.getAllSections,
+    enabled: true,
+    refetchOnMount: true,
+    staleTime: 0,
   });
+
+  // Filter to only active sections
+  const activeSections = sections?.filter(section => section.active) || [];
+
+
   const currentYear = new Date().getFullYear();
   
   const {
@@ -130,10 +138,21 @@ const ClassForm: React.FC<ClassFormProps> = ({
               error={errors.section?.message}
               options={[
                 { value: '', label: 'Select section' },
-                ...(sections || []).map(section => ({ value: section.name, label: section.name }))
+                ...activeSections.map(section => ({ value: section.name, label: section.name }))
               ]}
-              placeholder="Select section"
+              placeholder={sectionsLoading ? 'Loading sections...' : activeSections.length === 0 ? 'No active sections available' : 'Select section'}
+              disabled={sectionsLoading}
             />
+            {sectionsError && (
+              <div className="text-red-500 text-sm mt-1">
+                Error loading sections: {sectionsError.message}
+              </div>
+            )}
+            {!sectionsLoading && activeSections.length === 0 && (
+              <div className="text-amber-600 text-sm mt-1">
+                No active sections available. Please create sections first.
+              </div>
+            )}
             
             <Select
               label="Academic Year"

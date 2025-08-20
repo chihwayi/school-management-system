@@ -28,6 +28,17 @@ public class FeePaymentService {
         this.studentRepository = studentRepository;
     }
 
+    private String generateReceiptNumber() {
+        // Get the current year
+        String currentYear = String.valueOf(java.time.LocalDate.now().getYear());
+        
+        // Count existing payments for this year
+        long count = feePaymentRepository.countByAcademicYear(currentYear);
+        
+        // Generate receipt number: RCPT-YYYY-XXXXX (e.g., RCPT-2025-00001)
+        return String.format("RCPT-%s-%05d", currentYear, count + 1);
+    }
+
     public PaymentReceiptDTO recordPayment(FeePaymentDTO paymentDTO) {
         Student student = studentRepository.findById(paymentDTO.getStudentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
@@ -84,6 +95,10 @@ public class FeePaymentService {
             }
         }
 
+        // Generate and set receipt number
+        String receiptNumber = generateReceiptNumber();
+        payment.setReceiptNumber(receiptNumber);
+        
         feePaymentRepository.save(payment);
 
         return new PaymentReceiptDTO(
@@ -95,7 +110,8 @@ public class FeePaymentService {
                 payment.getBalance(),
                 payment.getPaymentDate(),
                 payment.getMonthlyFeeAmount(),
-                payment.getPaymentStatus().toString()
+                payment.getPaymentStatus().toString(),
+                receiptNumber
         );
     }
 

@@ -2,6 +2,7 @@ package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.dto.SignatureDTO;
 import com.devtech.school_management_system.entity.Teacher;
+import com.devtech.school_management_system.entity.TeacherSubjectClass;
 import com.devtech.school_management_system.entity.User;
 import com.devtech.school_management_system.repository.TeacherRepository;
 import com.devtech.school_management_system.repository.TeacherSubjectClassRepository;
@@ -154,7 +155,47 @@ public class SignatureService {
     }
 
     public SignatureDTO getSubjectTeacherSignature(Long subjectId, String form, String section) {
-        // For now, return null - would need proper subject teacher identification
-        return null;
+        try {
+            // Find the teacher assigned to this subject in the specified class
+            // Try different academic years to find the assignment
+            String[] academicYears = {"2025", "2024", "2023"};
+            TeacherSubjectClass assignment = null;
+            
+            for (String year : academicYears) {
+                try {
+                    assignment = teacherSubjectClassRepository
+                            .findBySubjectIdAndFormAndSectionAndAcademicYear(subjectId, form, section, year)
+                            .orElse(null);
+                    if (assignment != null) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    // Continue to next year if this one fails
+                    continue;
+                }
+            }
+            
+            if (assignment == null || assignment.getTeacher() == null) {
+                return null;
+            }
+            
+            Teacher teacher = assignment.getTeacher();
+            
+            if (teacher.getSignatureUrl() == null || teacher.getSignatureUrl().isEmpty()) {
+                return null;
+            }
+            
+            return new SignatureDTO(
+                teacher.getId(),
+                teacher.getSignatureUrl(),
+                teacher.getFirstName() + " " + teacher.getLastName(),
+                "SUBJECT_TEACHER",
+                null
+            );
+        } catch (Exception e) {
+            // Log the error and return null
+            System.err.println("Error getting subject teacher signature: " + e.getMessage());
+            return null;
+        }
     }
 }

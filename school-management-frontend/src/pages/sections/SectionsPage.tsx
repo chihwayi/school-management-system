@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Table, Modal } from '../../components/ui';
 import { sectionService } from '../../services/sectionService';
 import { useRoleCheck } from '../../hooks/useAuth';
@@ -9,6 +9,7 @@ import type { Section } from '../../types/section';
 
 const SectionsPage: React.FC = () => {
   const { canManageStudents } = useRoleCheck();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
@@ -18,7 +19,7 @@ const SectionsPage: React.FC = () => {
     active: true
   });
 
-  const { data: sections, isLoading, refetch } = useQuery({
+  const { data: sections, isLoading } = useQuery({
     queryKey: ['sections'],
     queryFn: sectionService.getAllSections,
   });
@@ -36,7 +37,7 @@ const SectionsPage: React.FC = () => {
       setIsModalOpen(false);
       setSelectedSection(null);
       setFormData({ name: '', description: '', active: true });
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['sections'] });
     } catch (error) {
       toast.error('Failed to save section');
     }
@@ -57,7 +58,7 @@ const SectionsPage: React.FC = () => {
       try {
         await sectionService.deleteSection(id);
         toast.success('Section deleted successfully');
-        refetch();
+        queryClient.invalidateQueries({ queryKey: ['sections'] });
       } catch (error) {
         toast.error('Failed to delete section');
       }
@@ -96,16 +97,18 @@ const SectionsPage: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Name</Table.HeaderCell>
-                <Table.HeaderCell>Description</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
-                <Table.HeaderCell>Actions</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>Name</Table.HeaderCell>
+                    <Table.HeaderCell>Description</Table.HeaderCell>
+                    <Table.HeaderCell>Status</Table.HeaderCell>
+                    <Table.HeaderCell className="min-w-[150px]">Actions</Table.HeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
               {filteredSections.map((section) => (
                 <Table.Row key={section.id}>
                   <Table.Cell>{section.name}</Table.Cell>
@@ -139,6 +142,8 @@ const SectionsPage: React.FC = () => {
               ))}
             </Table.Body>
           </Table>
+            </div>
+          </div>
         )}
       </Card>
 

@@ -108,7 +108,7 @@ public class AssessmentService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    public AssessmentResponseDTO updateAssessment(Long id, String title, LocalDate date, Double score, Double maxScore) {
+    public AssessmentResponseDTO updateAssessment(Long id, String title, LocalDate date, Double score, Double maxScore, String term, String academicYear) {
         Assessment assessment = assessmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Assessment not found with id: " + id));
 
@@ -116,6 +116,8 @@ public class AssessmentService {
         assessment.setDate(date);
         assessment.setScore(score);
         assessment.setMaxScore(maxScore);
+        assessment.setTerm(term);
+        assessment.setAcademicYear(academicYear);
 
         Assessment updatedAssessment = assessmentRepository.save(assessment);
         return convertToDTO(updatedAssessment);

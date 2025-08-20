@@ -9,9 +9,13 @@ import ThemeProvider from './components/common/ThemeProvider';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import MainLayout from './components/layout/MainLayout';
 
+// Utils
+import { getCurrentTenant } from './utils/tenant';
+
 // Auth & Setup Pages
 import LoginPage from './pages/auth/LoginPage';
 import SchoolSetupPage from './pages/setup/SchoolSetupPage';
+import SchoolSelectionPage from './pages/SchoolSelectionPage';
 
 // Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -50,18 +54,20 @@ const queryClient = new QueryClient({
 
 // Route Guard Component
 const RouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isSchoolConfigured, isLoading, resetAuth } = useAuth();
+  const { isAuthenticated, isSchoolConfigured, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  // Check school setup first, before authentication
+  // Check tenant first
+  const currentTenant = getCurrentTenant();
+  if (!currentTenant) {
+    return <Navigate to="/select-school" replace />;
+  }
+
+  // Check school setup
   if (!isSchoolConfigured) {
-    // If school is not configured but user is authenticated, reset auth
-    if (isAuthenticated) {
-      resetAuth();
-    }
     return <Navigate to="/setup" replace />;
   }
 
@@ -74,27 +80,29 @@ const RouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Root Route Component - handles initial redirect
 const RootRoute: React.FC = () => {
-  const { isAuthenticated, isSchoolConfigured, isLoading, resetAuth } = useAuth();
+  const { isAuthenticated, isSchoolConfigured, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  // Check school setup first
+  // Check tenant first
+  const currentTenant = getCurrentTenant();
+  if (!currentTenant) {
+    return <Navigate to="/select-school" replace />;
+  }
+
+  // Check school setup
   if (!isSchoolConfigured) {
-    // If school is not configured but user is authenticated, reset auth
-    if (isAuthenticated) {
-      resetAuth();
-    }
     return <Navigate to="/setup" replace />;
   }
 
-  // Then check authentication
+  // Check authentication
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // If both are good, go to dashboard
+  // If all good, go to dashboard
   return <Navigate to="/app" replace />;
 };
 
@@ -117,6 +125,7 @@ const App: React.FC = () => {
               <Route path="/setup" element={<SchoolSetupPage />} />
               
               {/* Public Routes */}
+              <Route path="/select-school" element={<SchoolSelectionPage />} />
               <Route path="/login" element={<LoginPage />} />
 
               {/* Protected Routes */}

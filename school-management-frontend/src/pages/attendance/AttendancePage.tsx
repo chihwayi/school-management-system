@@ -9,7 +9,7 @@ import { Card, Button, Input, Table, Modal, Select, Badge } from '../../componen
 import { BulkAttendanceForm } from '../../components/forms';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { toast } from 'react-hot-toast';
-import { Calendar, Users, CheckCircle, XCircle, Clock, Filter, Download } from 'lucide-react';
+import { Calendar, Users, CheckCircle, XCircle, Clock, Filter, Download, RefreshCw } from 'lucide-react';
 
 const AttendancePage: React.FC = () => {
   const { user } = useAuth();
@@ -27,6 +27,7 @@ const AttendancePage: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [filterDate, setFilterDate] = useState('');
   const [filterClass, setFilterClass] = useState('');
+  const [nextRefreshTime, setNextRefreshTime] = useState<string>('');
 
   useEffect(() => {
     loadInitialData();
@@ -36,6 +37,62 @@ const AttendancePage: React.FC = () => {
     if (selectedDate) {
       loadAttendanceForDate(selectedDate);
     }
+  }, [selectedDate]);
+
+  // Debug effect to monitor attendanceRecords state changes
+  useEffect(() => {
+    console.log('AttendanceRecords state changed:', attendanceRecords);
+  }, [attendanceRecords]);
+
+  // Auto-refresh attendance data when day changes (at midnight)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout;
+
+    const checkDayChange = () => {
+      const currentDate = new Date().toISOString().split('T')[0];
+      if (currentDate !== selectedDate) {
+        console.log('Day changed detected, updating selected date from', selectedDate, 'to', currentDate);
+        setSelectedDate(currentDate);
+        // The loadAttendanceForDate will be triggered by the selectedDate change
+      }
+    };
+
+    const scheduleNextMidnight = () => {
+      // Calculate time until next midnight
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+
+      console.log('Setting timeout for day change in', timeUntilMidnight, 'ms (', Math.round(timeUntilMidnight / 1000 / 60), 'minutes)');
+
+      // Update the next refresh time display
+      setNextRefreshTime(tomorrow.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }));
+
+      timeoutId = setTimeout(() => {
+        console.log('Midnight reached, checking for day change');
+        checkDayChange();
+        scheduleNextMidnight(); // Schedule the next midnight
+      }, timeUntilMidnight);
+    };
+
+    // Check immediately
+    checkDayChange();
+
+    // Schedule the first midnight check
+    scheduleNextMidnight();
+
+    // Cleanup on unmount
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [selectedDate]);
 
   useEffect(() => {
@@ -89,12 +146,19 @@ const AttendancePage: React.FC = () => {
 
   const loadAttendanceForDate = async (date: string) => {
     try {
+      console.log('Loading attendance for date:', date);
       // Check if the selected date is in the future
       const selectedDateObj = new Date(date);
+      selectedDateObj.setHours(0, 0, 0, 0); // Normalize to start of day
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time part for accurate comparison
       
+      console.log('Selected date object (normalized):', selectedDateObj);
+      console.log('Today object:', today);
+      console.log('Is selected date > today?', selectedDateObj > today);
+      
       if (selectedDateObj > today) {
+        console.log('Date is in the future, returning early');
         // Only show the message if we're actually loading attendance for a future date
         // not when the component is just initializing
         if (date !== new Date().toISOString().split('T')[0]) {
@@ -106,6 +170,9 @@ const AttendancePage: React.FC = () => {
       
       const attendance = await attendanceService.getAttendanceByDate(date);
       console.log('Loaded attendance records:', attendance);
+      console.log('Setting attendance records state with:', attendance);
+      console.log('Attendance type:', typeof attendance);
+      console.log('Attendance length:', attendance?.length);
       setAttendanceRecords(attendance);
     } catch (error) {
       console.error('Error loading attendance for date:', error);
@@ -166,19 +233,34 @@ const AttendancePage: React.FC = () => {
     }
   };
 
+  const handleManualRefresh = async () => {
+    try {
+      setIsLoading(true);
+      await loadAttendanceForDate(selectedDate);
+      toast.success('Attendance data refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh attendance data');
+      console.error('Error refreshing attendance:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getAttendanceForStudent = (studentId: number) => {
     // Convert date strings to the same format for comparison
     const formattedSelectedDate = new Date(selectedDate).toISOString().split('T')[0];
     
     return attendanceRecords.find(record => {
       const recordDate = new Date(record.date).toISOString().split('T')[0];
-      return record.student.id === studentId && recordDate === formattedSelectedDate;
+      return record.studentId === studentId && recordDate === formattedSelectedDate;
     });
   };
 
   const getAttendanceStats = () => {
     // Format the selected date for consistent comparison
     const formattedSelectedDate = new Date(selectedDate).toISOString().split('T')[0];
+    console.log('Calculating stats for date:', formattedSelectedDate);
+    console.log('Current attendance records:', attendanceRecords);
     
     // Filter attendance records for the selected date with proper date formatting
     const todayAttendance = attendanceRecords.filter(record => {
@@ -186,23 +268,26 @@ const AttendancePage: React.FC = () => {
       return recordDate === formattedSelectedDate;
     });
     
+    console.log('Filtered attendance for today:', todayAttendance);
+    
     // Count present and absent students
     const present = todayAttendance.filter(record => record.present).length;
     const absent = todayAttendance.filter(record => !record.present).length;
     const total = students.length;
     
     // Calculate unmarked by checking which students don't have attendance records
-    const studentsWithAttendance = new Set(todayAttendance.map(record => record.student.id));
+    const studentsWithAttendance = new Set(todayAttendance.map(record => record.studentId));
     const unmarked = students.filter(student => !studentsWithAttendance.has(student.id)).length;
     
+    console.log('Stats calculated:', { present, absent, total, unmarked });
     return { present, absent, total, unmarked };
   };
 
   const filteredAttendance = attendanceRecords.filter(record => {
     const matchesDate = !filterDate || record.date === filterDate;
     const matchesClass = !filterClass || 
-      (record.student.form === filterClass.split('-')[0] && 
-       record.student.section === filterClass.split('-')[1]);
+      (record.studentForm === filterClass.split('-')[0] && 
+       record.studentSection === filterClass.split('-')[1]);
     return matchesDate && matchesClass;
   });
 
@@ -214,7 +299,14 @@ const AttendancePage: React.FC = () => {
     
     const attendance = attendanceRecords.find(record => {
       const recordDate = new Date(record.date).toISOString().split('T')[0];
-      return record.student.id === student.id && recordDate === formattedSelectedDate;
+      return record.studentId === student.id && recordDate === formattedSelectedDate;
+    });
+    
+    console.log(`Student ${student.id} (${student.firstName}):`, {
+      studentId: student.id,
+      formattedSelectedDate,
+      attendanceFound: !!attendance,
+      attendance
     });
     
     return {
@@ -223,10 +315,8 @@ const AttendancePage: React.FC = () => {
       studentId: student.studentId,
       class: `${student.form} ${student.section}`,
       status: attendance ? (attendance.present ? 'Present' : 'Absent') : 'Not Marked',
-      markedAt: attendance?.markedAt || '-',
-      markedBy: attendance?.markedBy ? 
-        (typeof attendance.markedBy === 'string' ? attendance.markedBy : 
-         `${attendance.markedBy.firstName || ''} ${attendance.markedBy.lastName || ''}`.trim()) : '-',
+      markedAt: attendance?.createdAt ? new Date(attendance.createdAt).toLocaleString() : '-',
+      markedBy: attendance?.markedBy || '-',
       actions: attendance ? 'Marked' : 'Pending'
     };
   });
@@ -371,6 +461,12 @@ const AttendancePage: React.FC = () => {
               className="w-auto"
               max={new Date().toISOString().split('T')[0]} // Prevent selecting future dates
             />
+            {selectedDate === new Date().toISOString().split('T')[0] && nextRefreshTime && (
+              <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                <Clock className="w-3 h-3" />
+                <span>Auto-refresh at {nextRefreshTime}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -412,6 +508,16 @@ const AttendancePage: React.FC = () => {
             />
           </div>
 
+          <Button
+            variant="outline"
+            onClick={handleManualRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
           {canViewReports() && (
             <Button
               variant="outline"
@@ -435,19 +541,21 @@ const AttendancePage: React.FC = () => {
             Attendance for {selectedDate} - {selectedClass || 'All Classes'}
           </h2>
         </div>
-        <Table>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Student Name</Table.HeaderCell>
-              <Table.HeaderCell>Student ID</Table.HeaderCell>
-              <Table.HeaderCell>Class</Table.HeaderCell>
-              <Table.HeaderCell>Status</Table.HeaderCell>
-              <Table.HeaderCell>Marked At</Table.HeaderCell>
-              <Table.HeaderCell>Marked By</Table.HeaderCell>
-              <Table.HeaderCell>Actions</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <div className="overflow-x-auto">
+          <div className="min-w-[1000px]">
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Student Name</Table.HeaderCell>
+                  <Table.HeaderCell>Student ID</Table.HeaderCell>
+                  <Table.HeaderCell>Class</Table.HeaderCell>
+                  <Table.HeaderCell>Status</Table.HeaderCell>
+                  <Table.HeaderCell>Marked At</Table.HeaderCell>
+                  <Table.HeaderCell>Marked By</Table.HeaderCell>
+                  <Table.HeaderCell className="min-w-[150px]">Actions</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
             {attendanceTableData.length > 0 ? (
               attendanceTableData.map(record => (
                 <Table.Row key={record.id}>
@@ -490,6 +598,8 @@ const AttendancePage: React.FC = () => {
             ) : null}
           </Table.Body>
         </Table>
+          </div>
+        </div>
         {attendanceTableData.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             No students found for the selected class

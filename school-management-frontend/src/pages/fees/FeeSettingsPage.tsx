@@ -129,18 +129,20 @@ const FeeSettingsPage: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Level</Table.HeaderCell>
-                <Table.HeaderCell>Amount</Table.HeaderCell>
-                <Table.HeaderCell>Academic Year</Table.HeaderCell>
-                <Table.HeaderCell>Term</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
-                <Table.HeaderCell>Actions</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px]">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>Level</Table.HeaderCell>
+                    <Table.HeaderCell>Amount</Table.HeaderCell>
+                    <Table.HeaderCell>Academic Year</Table.HeaderCell>
+                    <Table.HeaderCell>Term</Table.HeaderCell>
+                    <Table.HeaderCell>Status</Table.HeaderCell>
+                    <Table.HeaderCell className="min-w-[150px]">Actions</Table.HeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
               {feeSettings && feeSettings.length > 0 ? (
                 feeSettings.map((fee) => (
                   <Table.Row key={fee.id}>
@@ -182,6 +184,8 @@ const FeeSettingsPage: React.FC = () => {
               )}
             </Table.Body>
           </Table>
+            </div>
+          </div>
         )}
       </Card>
 

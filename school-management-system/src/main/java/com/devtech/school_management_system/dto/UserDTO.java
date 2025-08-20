@@ -7,6 +7,8 @@ public class UserDTO {
     private Long id;
     private String username;
     private String email;
+    private String firstName;
+    private String lastName;
     private boolean enabled;
     private Set<String> roles;
     private LocalDateTime createdAt;
@@ -34,10 +36,26 @@ public class UserDTO {
         return email;
     }
     
-    public void setEmail(String email) {
+        public void setEmail(String email) {
         this.email = email;
     }
-    
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }

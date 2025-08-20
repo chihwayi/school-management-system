@@ -27,7 +27,7 @@ const ClassDetailPage: React.FC = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedTerm, setSelectedTerm] = useState<string>('Term 1');
+  const [selectedTerm, setSelectedTerm] = useState<string>('Term 2');
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
   useEffect(() => {
@@ -35,6 +35,13 @@ const ClassDetailPage: React.FC = () => {
       loadClassDetails();
     }
   }, [isAuthenticated, id]);
+
+  // Reload attendance when students change
+  useEffect(() => {
+    if (students.length > 0) {
+      loadAttendanceForDate(selectedDate);
+    }
+  }, [students, selectedDate]);
 
   const loadClassDetails = async () => {
     if (!id) return;
@@ -49,7 +56,7 @@ const ClassDetailPage: React.FC = () => {
         setClassGroup(classData);
         
         // Load reports if we have the class data
-        loadReports(classData.id, selectedTerm, selectedYear);
+        loadReportsWithClassData(classData, selectedTerm, selectedYear);
       } catch (error) {
         console.error('Error loading class:', error);
         toast.error('Failed to load class details');
@@ -60,9 +67,6 @@ const ClassDetailPage: React.FC = () => {
         const studentsData = await classService.getStudentsInClass(parseInt(id));
         console.log('Students data loaded:', studentsData);
         setStudents(studentsData);
-        
-        // Load attendance for today
-        loadAttendanceForDate(selectedDate);
       } catch (error) {
         console.error('Error loading students:', error);
         toast.error('Failed to load students');
@@ -77,11 +81,17 @@ const ClassDetailPage: React.FC = () => {
   const loadAttendanceForDate = async (date: string) => {
     try {
       const attendanceData = await attendanceService.getAttendanceByDate(date);
+      console.log('All attendance data for date:', date, attendanceData);
+      
       // Filter attendance for this class's students
       const classStudentIds = students.map(s => s.id);
+      console.log('Class student IDs:', classStudentIds);
+      
       const filteredAttendance = attendanceData.filter(a => 
-        classStudentIds.includes(a.student.id)
+        classStudentIds.includes(a.studentId)
       );
+      console.log('Filtered attendance for class:', filteredAttendance);
+      
       setAttendance(filteredAttendance);
     } catch (error) {
       console.error('Error loading attendance:', error);
@@ -91,7 +101,18 @@ const ClassDetailPage: React.FC = () => {
 
   const loadReports = async (classId: number, term: string, year: string) => {
     try {
-      const reportsData = await reportService.getClassReports(classId, term, year);
+      if (!classGroup) return;
+      const reportsData = await reportService.getClassReports(classGroup.form, classGroup.section, term, year);
+      setReports(reportsData);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+      toast.error('Failed to load reports');
+    }
+  };
+
+  const loadReportsWithClassData = async (classData: any, term: string, year: string) => {
+    try {
+      const reportsData = await reportService.getClassReports(classData.form, classData.section, term, year);
       setReports(reportsData);
     } catch (error) {
       console.error('Error loading reports:', error);
@@ -118,7 +139,12 @@ const ClassDetailPage: React.FC = () => {
     if (!classGroup) return;
 
     try {
-      await reportService.generateClassReports(classGroup.id, selectedTerm, selectedYear);
+      // Generate reports for each student in the class
+      await Promise.all(
+        students.map(student => 
+          reportService.generateStudentReport(student.id, selectedTerm, selectedYear)
+        )
+      );
       toast.success('Reports generated successfully');
       loadReports(classGroup.id, selectedTerm, selectedYear);
     } catch (error) {
@@ -175,7 +201,7 @@ const ClassDetailPage: React.FC = () => {
 
 
   const studentData = students.map(student => {
-    const todayAttendance = attendance.find(a => a.student.id === student.id);
+    const todayAttendance = attendance.find(a => a.studentId === student.id);
     return {
       id: student.id,
       studentId: student.studentId,
@@ -204,7 +230,7 @@ const ClassDetailPage: React.FC = () => {
 
   const reportData = reports.map(report => ({
     id: report.id,
-    studentName: `${report.student.firstName} ${report.student.lastName}`,
+    studentName: report.studentName,
     overallComment: report.overallComment ? 'Added' : 'Pending',
     status: (
       <Badge variant={report.finalized ? 'success' : 'warning'}>
@@ -213,13 +239,25 @@ const ClassDetailPage: React.FC = () => {
     ),
     actions: (
       <div className="flex space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => openReportModal(report)}
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
+        {!report.finalized ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openReportModal(report)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/app/reports/${report.id}`, { 
+              state: { from: `/app/classes/${classGroup.id}` } 
+            })}
+          >
+            View
+          </Button>
+        )}
         {canFinalizeReports() && !report.finalized && (
           <Button
             variant="outline"
@@ -288,10 +326,7 @@ const ClassDetailPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Class Teacher</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {classGroup.classTeacher ? 
-                    `${classGroup.classTeacher.firstName} ${classGroup.classTeacher.lastName}` : 
-                    'Not assigned'
-                  }
+                  {classGroup.classTeacherName || 'Not assigned'}
                 </p>
               </div>
             </div>
@@ -332,30 +367,34 @@ const ClassDetailPage: React.FC = () => {
                 </Button>
               )}
             </div>
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Student ID</Table.HeaderCell>
-                  <Table.HeaderCell>Full Name</Table.HeaderCell>
-                  <Table.HeaderCell>Level</Table.HeaderCell>
-                  <Table.HeaderCell>Today's Attendance</Table.HeaderCell>
-                  <Table.HeaderCell>Actions</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {studentData.length > 0 ? (
-                  studentData.map(student => (
-                    <Table.Row key={student.id}>
-                      <Table.Cell>{student.studentId}</Table.Cell>
-                      <Table.Cell>{student.fullName}</Table.Cell>
-                      <Table.Cell>{student.level}</Table.Cell>
-                      <Table.Cell>{student.attendanceStatus}</Table.Cell>
-                      <Table.Cell>{student.actions}</Table.Cell>
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                <Table>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell>Student ID</Table.HeaderCell>
+                      <Table.HeaderCell>Full Name</Table.HeaderCell>
+                      <Table.HeaderCell>Level</Table.HeaderCell>
+                      <Table.HeaderCell>Today's Attendance</Table.HeaderCell>
+                      <Table.HeaderCell>Actions</Table.HeaderCell>
                     </Table.Row>
-                  ))
-                ) : null}
-              </Table.Body>
-            </Table>
+                  </Table.Header>
+                  <Table.Body>
+                    {studentData.length > 0 ? (
+                      studentData.map(student => (
+                        <Table.Row key={student.id}>
+                          <Table.Cell>{student.studentId}</Table.Cell>
+                          <Table.Cell>{student.fullName}</Table.Cell>
+                          <Table.Cell>{student.level}</Table.Cell>
+                          <Table.Cell>{student.attendanceStatus}</Table.Cell>
+                          <Table.Cell>{student.actions}</Table.Cell>
+                        </Table.Row>
+                      ))
+                    ) : null}
+                  </Table.Body>
+                </Table>
+              </div>
+            </div>
             {studentData.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No students found
@@ -388,30 +427,34 @@ const ClassDetailPage: React.FC = () => {
                 )}
               </div>
             </div>
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Student ID</Table.HeaderCell>
-                  <Table.HeaderCell>Full Name</Table.HeaderCell>
-                  <Table.HeaderCell>Level</Table.HeaderCell>
-                  <Table.HeaderCell>Today's Attendance</Table.HeaderCell>
-                  <Table.HeaderCell>Actions</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {studentData.length > 0 ? (
-                  studentData.map(student => (
-                    <Table.Row key={student.id}>
-                      <Table.Cell>{student.studentId}</Table.Cell>
-                      <Table.Cell>{student.fullName}</Table.Cell>
-                      <Table.Cell>{student.level}</Table.Cell>
-                      <Table.Cell>{student.attendanceStatus}</Table.Cell>
-                      <Table.Cell>{student.actions}</Table.Cell>
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                <Table>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell>Student ID</Table.HeaderCell>
+                      <Table.HeaderCell>Full Name</Table.HeaderCell>
+                      <Table.HeaderCell>Level</Table.HeaderCell>
+                      <Table.HeaderCell>Today's Attendance</Table.HeaderCell>
+                      <Table.HeaderCell>Actions</Table.HeaderCell>
                     </Table.Row>
-                  ))
-                ) : null}
-              </Table.Body>
-            </Table>
+                  </Table.Header>
+                  <Table.Body>
+                    {studentData.length > 0 ? (
+                      studentData.map(student => (
+                        <Table.Row key={student.id}>
+                          <Table.Cell>{student.studentId}</Table.Cell>
+                          <Table.Cell>{student.fullName}</Table.Cell>
+                          <Table.Cell>{student.level}</Table.Cell>
+                          <Table.Cell>{student.attendanceStatus}</Table.Cell>
+                          <Table.Cell>{student.actions}</Table.Cell>
+                        </Table.Row>
+                      ))
+                    ) : null}
+                  </Table.Body>
+                </Table>
+              </div>
+            </div>
             {studentData.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No attendance records found
@@ -462,28 +505,32 @@ const ClassDetailPage: React.FC = () => {
                 )}
               </div>
             </div>
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Student</Table.HeaderCell>
-                  <Table.HeaderCell>Overall Comment</Table.HeaderCell>
-                  <Table.HeaderCell>Status</Table.HeaderCell>
-                  <Table.HeaderCell>Actions</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {reportData.length > 0 ? (
-                  reportData.map(report => (
-                    <Table.Row key={report.id}>
-                      <Table.Cell>{report.studentName}</Table.Cell>
-                      <Table.Cell>{report.overallComment}</Table.Cell>
-                      <Table.Cell>{report.status}</Table.Cell>
-                      <Table.Cell>{report.actions}</Table.Cell>
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                <Table>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell>Student</Table.HeaderCell>
+                      <Table.HeaderCell>Overall Comment</Table.HeaderCell>
+                      <Table.HeaderCell>Status</Table.HeaderCell>
+                      <Table.HeaderCell>Actions</Table.HeaderCell>
                     </Table.Row>
-                  ))
-                ) : null}
-              </Table.Body>
-            </Table>
+                  </Table.Header>
+                  <Table.Body>
+                    {reportData.length > 0 ? (
+                      reportData.map(report => (
+                        <Table.Row key={report.id}>
+                          <Table.Cell>{report.studentName}</Table.Cell>
+                          <Table.Cell>{report.overallComment}</Table.Cell>
+                          <Table.Cell>{report.status}</Table.Cell>
+                          <Table.Cell>{report.actions}</Table.Cell>
+                        </Table.Row>
+                      ))
+                    ) : null}
+                  </Table.Body>
+                </Table>
+              </div>
+            </div>
             {reportData.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No reports found
@@ -521,7 +568,17 @@ const ClassDetailPage: React.FC = () => {
       >
         {selectedReport && (
           <ReportCommentForm
-            student={selectedReport.student}
+            student={{
+              id: selectedReport.studentId,
+              firstName: selectedReport.studentName.split(' ')[0] || '',
+              lastName: selectedReport.studentName.split(' ').slice(1).join(' ') || '',
+              studentId: selectedReport.studentId.toString(),
+              form: selectedReport.form,
+              section: selectedReport.section,
+              level: 'JUNIOR_SECONDARY', // Default value
+              enrollmentDate: new Date().toISOString(),
+              academicYear: selectedReport.academicYear
+            }}
             currentComment={selectedReport.overallComment || ''}
             isOverallComment={true}
             onSubmit={async (data) => {

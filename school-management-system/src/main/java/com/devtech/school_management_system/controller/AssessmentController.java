@@ -79,7 +79,9 @@ public class AssessmentController {
                 updateDTO.getTitle(),
                 updateDTO.getDate(),
                 updateDTO.getScore(),
-                updateDTO.getMaxScore()
+                updateDTO.getMaxScore(),
+                updateDTO.getTerm(),
+                updateDTO.getAcademicYear()
         );
     }
 

@@ -197,18 +197,20 @@ const GuardiansPage: React.FC = () => {
               guardiansLoading ? (
                 <LoadingSpinner />
               ) : guardians.length > 0 ? (
-                <Table>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell>Name</Table.HeaderCell>
-                      <Table.HeaderCell>Relationship</Table.HeaderCell>
-                      <Table.HeaderCell>Phone</Table.HeaderCell>
-                      <Table.HeaderCell>WhatsApp</Table.HeaderCell>
-                      <Table.HeaderCell>Type</Table.HeaderCell>
-                      <Table.HeaderCell>Actions</Table.HeaderCell>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[900px]">
+                    <Table>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.HeaderCell>Name</Table.HeaderCell>
+                          <Table.HeaderCell>Relationship</Table.HeaderCell>
+                          <Table.HeaderCell>Phone</Table.HeaderCell>
+                          <Table.HeaderCell>WhatsApp</Table.HeaderCell>
+                          <Table.HeaderCell>Type</Table.HeaderCell>
+                          <Table.HeaderCell className="min-w-[150px]">Actions</Table.HeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
                     {guardians.map(guardian => (
                       <Table.Row key={guardian.id}>
                         <Table.Cell>
@@ -259,6 +261,8 @@ const GuardiansPage: React.FC = () => {
                     ))}
                   </Table.Body>
                 </Table>
+                  </div>
+                </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   No guardians found for this student.

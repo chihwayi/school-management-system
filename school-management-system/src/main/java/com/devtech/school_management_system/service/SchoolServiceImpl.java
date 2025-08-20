@@ -29,7 +29,13 @@ public class SchoolServiceImpl implements SchoolService {
 
     @Override
     public boolean isSchoolConfigured() {
-        return schoolRepository.findAll().stream().anyMatch(School::isConfigured);
+        String currentTenant = com.devtech.school_management_system.config.TenantContext.getCurrentTenant();
+        String currentDatabase = com.devtech.school_management_system.config.TenantContext.getCurrentDatabase();
+        System.out.println("SchoolServiceImpl.isSchoolConfigured() - Tenant: " + currentTenant + ", Database: " + currentDatabase);
+        
+        boolean result = schoolRepository.findAll().stream().anyMatch(School::isConfigured);
+        System.out.println("SchoolServiceImpl.isSchoolConfigured() - Result: " + result);
+        return result;
     }
     @Override
     public School getSchoolConfiguration() {
@@ -42,11 +48,8 @@ public class SchoolServiceImpl implements SchoolService {
     }
 
     public School setupSchool(SchoolConfigDTO schoolConfigDTO, MultipartFile logo, MultipartFile background, MultipartFile ministryLogo) throws IOException {
-        if (isSchoolConfigured()) {
-            throw new IllegalStateException("School is already configured");
-        }
-
-        School school = new School();
+        // Find existing school record or create new one
+        School school = schoolRepository.findAll().stream().findFirst().orElse(new School());
         mapDTOToEntity(schoolConfigDTO, school);
 
         if (logo != null && !logo.isEmpty()) {

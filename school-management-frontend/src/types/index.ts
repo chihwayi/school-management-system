@@ -106,6 +106,7 @@ export interface StudentRegistrationDTO {
   section: string;
   level: string;
   academicYear: string;
+  enrollmentDate?: string; // Optional: enrollment date in YYYY-MM-DD format
   subjectIds?: number[];
 }
 
@@ -259,6 +260,8 @@ export interface AssessmentUpdateDTO {
   date: string;
   score: number;
   maxScore: number;
+  term: string;
+  academicYear: string;
 }
 
 export enum AssessmentType {
@@ -278,26 +281,31 @@ export interface StudentSubject {
 // Attendance Types
 export interface Attendance {
   id: number;
-  student: Student;
+  studentId: number;
+  studentFirstName: string;
+  studentLastName: string;
+  studentIdNumber: string;
+  studentForm: string;
+  studentSection: string;
   date: string;
   present: boolean;
-  markedBy?: Teacher;
-  markedAt: string;
+  markedBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Report Types
 export interface Report {
   id: number;
-  student: Student;
-  classGroup: ClassGroup;
+  studentId: number;
+  studentName: string;
+  form: string;
+  section: string;
   term: string;
   academicYear: string;
   subjectReports: SubjectReport[];
   overallComment?: string;
-  overallCommentBy?: Teacher;
   finalized: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface SubjectReport {

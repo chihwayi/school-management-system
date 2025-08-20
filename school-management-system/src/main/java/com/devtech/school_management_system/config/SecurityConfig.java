@@ -1,6 +1,7 @@
 package com.devtech.school_management_system.config;
 
-import com.devtech.school_management_system.filter.JwtAuthenticationFilter;
+import com.devtech.school_management_system.security.JwtAuthenticationFilter;
+import com.devtech.school_management_system.filter.SchoolConfigurationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired(required = false)
+    private SchoolConfigurationFilter schoolConfigurationFilter;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -42,15 +46,20 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/school/setup").permitAll()
-                .requestMatchers("/api/school/config").permitAll()
+                .requestMatchers("/api/school/**").permitAll()
+                .requestMatchers("/api/tenant/**").permitAll()
+                .requestMatchers("/api/test/**").permitAll()
+                .requestMatchers("/api/school-admin/**").permitAll()
                 .requestMatchers("/api/uploads/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/info").permitAll()
                 .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            );
+        if (schoolConfigurationFilter != null) {
+            http.addFilterBefore(schoolConfigurationFilter, UsernamePasswordAuthenticationFilter.class);
+        }
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

@@ -9,14 +9,16 @@ import { Plus, Search, Edit, Trash2, Eye, UserPlus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { studentService } from '../../services/studentService';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 
 const ClassesPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { canManageClasses, isTeacher } = useRoleCheck();
+  
+
   const navigate = useNavigate();
-  const [classes, setClasses] = useState<ClassGroup[]>([]);
+  const queryClient = useQueryClient();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,15 +28,14 @@ const ClassesPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadClasses();
       loadTeachers();
     }
   }, [isAuthenticated]);
 
-  const loadClasses = async () => {
-    try {
-      setLoading(true);
-      
+  // React Query for classes
+  const { data: classes = [], isLoading: classesLoading, refetch: refetchClasses, isFetching } = useQuery({
+    queryKey: ['classes'],
+    queryFn: async () => {
       let classesData;
       if (isTeacher()) {
         // For teachers, only load their assigned classes
@@ -49,10 +50,10 @@ const ClassesPage: React.FC = () => {
           const teachingClasses = teachingAssignments.reduce((classes: any[], assignment: any) => {
             if (!classes.some(c => c.form === assignment.form && c.section === assignment.section)) {
               classes.push({
-                id: assignment.classGroupId || 0,
+                id: 0, // We don't have classGroupId in TeacherAssignment, so use 0
                 form: assignment.form,
                 section: assignment.section,
-                academicYear: assignment.academicYear || new Date().getFullYear().toString()
+                academicYear: new Date().getFullYear().toString() // Default to current year
               });
             }
             return classes;
@@ -61,10 +62,18 @@ const ClassesPage: React.FC = () => {
           // Combine both sets of classes (supervised and teaching)
           classesData = [...supervisedClasses, ...teachingClasses];
           
-          // Remove duplicates
+          // Remove duplicates based on form and section (since some classes might have ID 0)
           classesData = classesData.filter((class1, index, self) => 
-            index === self.findIndex(class2 => class2.id === class1.id)
+            index === self.findIndex(class2 => 
+              class2.form === class1.form && class2.section === class1.section
+            )
           );
+          
+          // If teacher has no classes, show empty list
+          if (classesData.length === 0) {
+            console.log('Teacher has no assigned classes');
+            classesData = [];
+          }
         } catch (error) {
           console.error('Error loading teacher classes:', error);
           classesData = [];
@@ -76,8 +85,6 @@ const ClassesPage: React.FC = () => {
       
       // Load students
       const studentsData = await studentService.getAllStudents();
-
-      console.log('Raw classes data from API:', classesData);
 
       // Map classes with student counts
       const classesWithStudents = classesData.map((classGroup: any) => {
@@ -96,15 +103,16 @@ const ClassesPage: React.FC = () => {
         };
       });
 
-      console.log('Processed classes with students:', classesWithStudents);
-      setClasses(classesWithStudents);
-    } catch (error) {
-      console.error('Error loading classes:', error);
-      toast.error('Failed to load classes');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return classesWithStudents;
+    },
+    enabled: isAuthenticated,
+    refetchOnMount: true,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+
 
   const loadTeachers = async () => {
     try {
@@ -120,25 +128,31 @@ const ClassesPage: React.FC = () => {
       try {
         await classService.deleteClassGroup(classId);
         toast.success('Class deleted successfully');
-        loadClasses();
+        queryClient.invalidateQueries({ queryKey: ['classes'] });
       } catch (error) {
         toast.error('Failed to delete class');
       }
     }
   };
 
-  const handleCreateClass = async (classData: Omit<ClassGroup, 'id'>) => {
-    try {
-      console.log('Creating class with data:', classData);
-      const result = await classService.createClassGroup(classData);
-      console.log('Class creation result:', result);
+  // Mutation for creating classes
+  const createClassMutation = useMutation({
+    mutationFn: classService.createClassGroup,
+    onSuccess: (result) => {
       toast.success('Class created successfully');
       setIsModalOpen(false);
-      loadClasses();
-    } catch (error) {
-      console.error('Error creating class:', error);
+      
+      // Invalidate and refetch classes cache
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+    },
+    onError: (error) => {
+      console.error('Class creation mutation error:', error);
       toast.error('Failed to create class');
     }
+  });
+
+  const handleCreateClass = async (classData: Omit<ClassGroup, 'id'>) => {
+    createClassMutation.mutate(classData);
   };
 
   const handleUpdateClass = async (classData: Partial<ClassGroup>) => {
@@ -149,7 +163,7 @@ const ClassesPage: React.FC = () => {
       toast.success('Class updated successfully');
       setIsModalOpen(false);
       setSelectedClass(null);
-      loadClasses();
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
     } catch (error) {
       toast.error('Failed to update class');
     }
@@ -163,7 +177,7 @@ const ClassesPage: React.FC = () => {
       toast.success('Class teacher assigned successfully');
       setIsAssignmentModalOpen(false);
       setSelectedClassForAssignment(null);
-      loadClasses();
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
     } catch (error) {
       console.error('Error assigning teacher:', error);
       toast.error('Failed to assign class teacher');
@@ -196,8 +210,7 @@ const ClassesPage: React.FC = () => {
     const matchesSearch = searchTerm === '' ||
       classGroup.form.toLowerCase().includes(searchTerm.toLowerCase()) ||
       classGroup.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classGroup.classTeacher?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classGroup.classTeacher?.lastName.toLowerCase().includes(searchTerm.toLowerCase());
+      (classGroup.classTeacherName && classGroup.classTeacherName.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesYear = yearFilter === '' || classGroup.academicYear === yearFilter;
 
@@ -216,20 +229,12 @@ const ClassesPage: React.FC = () => {
   ];
 
   const tableData = filteredClasses.map(classGroup => {
-    // Debug logging
-    console.log('Class group:', classGroup);
-    console.log('Class teacher:', classGroup.classTeacher);
-    console.log('Class teacher name:', classGroup.classTeacherName);
-    console.log('Students:', classGroup.students);
-
     return {
       id: classGroup.id,
       form: classGroup.form,
       section: classGroup.section,
       academicYear: classGroup.academicYear,
-      classTeacher: classGroup.classTeacher && classGroup.classTeacher.firstName
-        ? `${classGroup.classTeacher.firstName} ${classGroup.classTeacher.lastName}`
-        : classGroup.classTeacherName || 'Not Assigned',
+      classTeacher: classGroup.classTeacherName || 'Not Assigned',
       studentCount: classGroup.students?.length || 0,
       actions: (
         <div className="flex space-x-2">
@@ -270,7 +275,7 @@ const ClassesPage: React.FC = () => {
     };
   });
 
-  if (loading) {
+  if (classesLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -283,10 +288,18 @@ const ClassesPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Classes</h1>
         {canManageClasses() && (
-          <Button onClick={openCreateModal} useTheme>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Class
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => refetchClasses()}
+            >
+              Refresh Classes
+            </Button>
+            <Button onClick={openCreateModal} useTheme>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Class
+            </Button>
+          </div>
         )}
       </div>
 
@@ -315,26 +328,30 @@ const ClassesPage: React.FC = () => {
             </Select>
           </div>
 
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                {tableColumns.map(col => <Table.HeaderCell key={col.key}>{col.header}</Table.HeaderCell>)}
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {tableData.length > 0 ? (
-                tableData.map(row => (
-                  <Table.Row key={row.id}>
-                    {tableColumns.map(col => (
-                      <Table.Cell key={`${row.id}-${col.key}`}>
-                        {row[col.key as keyof typeof row]}
-                      </Table.Cell>
-                    ))}
-                  </Table.Row>
-                ))
-              ) : null}
-            </Table.Body>
-          </Table>
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px]">
+              <Table>
+              <Table.Header>
+                <Table.Row>
+                  {tableColumns.map(col => <Table.HeaderCell key={col.key}>{col.header}</Table.HeaderCell>)}
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {tableData.length > 0 ? (
+                  tableData.map(row => (
+                    <Table.Row key={row.id}>
+                      {tableColumns.map(col => (
+                        <Table.Cell key={`${row.id}-${col.key}`}>
+                          {row[col.key as keyof typeof row]}
+                        </Table.Cell>
+                      ))}
+                    </Table.Row>
+                  ))
+                ) : null}
+              </Table.Body>
+                          </Table>
+            </div>
+          </div>
           {tableData.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No classes found.
@@ -353,7 +370,6 @@ const ClassesPage: React.FC = () => {
           initialData={selectedClass || undefined}
           onSubmit={selectedClass ? handleUpdateClass : handleCreateClass}
           teachers={teachers}
-          sections={['A', 'B', 'C', 'D']}
         />
       </Modal>
 

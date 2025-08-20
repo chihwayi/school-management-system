@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .header {
+            background: #667eea;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+        }
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .stat:last-child {
+            border-bottom: none;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .welcome-message {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .welcome-message h2 {
+            color: #333;
+            margin: 0 0 1rem 0;
+        }
+        .welcome-message p {
+            color: #666;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>School Admin Dashboard</h1>
+        <div class="user-info">
+            <span id="userName">Loading...</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-message">
+            <h2>Welcome to Your School Management System</h2>
+            <p>Your school has been successfully configured and is ready to use.</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>School Statistics</h3>
+                <div id="schoolStats" class="loading">Loading statistics...</div>
+            </div>
+
+            <div class="card">
+                <h3>School Configuration</h3>
+                <div id="schoolConfig" class="loading">Loading configuration...</div>
+            </div>
+
+            <div class="card">
+                <h3>Quick Actions</h3>
+                <div>
+                    <button onclick="manageStudents()" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Manage Students</button>
+                    <button onclick="manageTeachers()" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Manage Teachers</button>
+                    <button onclick="manageClasses()" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Manage Classes</button>
+                    <button onclick="viewReports()" style="width: 100%; padding: 0.5rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">View Reports</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        function checkAuth() {
+            const token = localStorage.getItem('schoolAdminToken');
+            const user = localStorage.getItem('schoolAdminUser');
+            
+            if (!token || !user) {
+                window.location.href = '/school-admin-login.html';
+                return;
+            }
+            
+            const userData = JSON.parse(user);
+            document.getElementById('userName').textContent = `${userData.firstName} ${userData.lastName}`;
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                // Load school stats
+                const statsResponse = await fetch('/api/school-admin/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('schoolAdminToken')}`
+                    }
+                });
+                
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    displayStats(stats);
+                }
+
+                // Load school config
+                const configResponse = await fetch('/api/school-admin/config', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('schoolAdminToken')}`
+                    }
+                });
+                
+                if (configResponse.ok) {
+                    const config = await configResponse.json();
+                    displayConfig(config);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function displayStats(stats) {
+            const statsDiv = document.getElementById('schoolStats');
+            statsDiv.innerHTML = `
+                <div class="stat">
+                    <span>Total Students:</span>
+                    <span class="stat-value">${stats.totalStudents}</span>
+                </div>
+                <div class="stat">
+                    <span>Total Teachers:</span>
+                    <span class="stat-value">${stats.totalTeachers}</span>
+                </div>
+                <div class="stat">
+                    <span>Total Classes:</span>
+                    <span class="stat-value">${stats.totalClasses}</span>
+                </div>
+                <div class="stat">
+                    <span>Total Users:</span>
+                    <span class="stat-value">${stats.totalUsers}</span>
+                </div>
+            `;
+        }
+
+        function displayConfig(config) {
+            const configDiv = document.getElementById('schoolConfig');
+            configDiv.innerHTML = `
+                <div class="stat">
+                    <span>School Name:</span>
+                    <span class="stat-value">${config.schoolName}</span>
+                </div>
+                <div class="stat">
+                    <span>Contact Email:</span>
+                    <span class="stat-value">${config.contactEmail}</span>
+                </div>
+                <div class="stat">
+                    <span>Timezone:</span>
+                    <span class="stat-value">${config.timezone}</span>
+                </div>
+                <div class="stat">
+                    <span>Currency:</span>
+                    <span class="stat-value">${config.currency}</span>
+                </div>
+            `;
+        }
+
+        function logout() {
+            localStorage.removeItem('schoolAdminToken');
+            localStorage.removeItem('schoolAdminUser');
+            window.location.href = '/school-admin-login.html';
+        }
+
+        function manageStudents() {
+            alert('Student management feature coming soon!');
+        }
+
+        function manageTeachers() {
+            alert('Teacher management feature coming soon!');
+        }
+
+        function manageClasses() {
+            alert('Class management feature coming soon!');
+        }
+
+        function viewReports() {
+            alert('Reports feature coming soon!');
+        }
+
+        // Initialize
+        checkAuth();
+        loadDashboard();
+    </script>
+</body>
+</html>

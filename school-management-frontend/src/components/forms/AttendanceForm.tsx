@@ -24,7 +24,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({
     const initialRecords: Record<number, boolean> = {};
     students.forEach(student => {
       const existingRecord = existingAttendance.find(
-        att => att.student.id === student.id && att.date === selectedDate
+        att => att.studentId === student.id && att.date === selectedDate
       );
       initialRecords[student.id] = existingRecord?.present ?? true;
     });

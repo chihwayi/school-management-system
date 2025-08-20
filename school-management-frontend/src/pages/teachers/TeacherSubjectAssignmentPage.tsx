@@ -72,7 +72,13 @@ const TeacherSubjectAssignmentPage: React.FC = () => {
   const { data: teacherAssignments = [], isLoading: assignmentsLoading } = useQuery({
     queryKey: ['teacherAssignments', selectedTeacher],
     // @ts-ignore
-    queryFn: () => selectedTeacher ? teacherService.getTeacherAssignments(selectedTeacher) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!selectedTeacher) return [];
+      console.log('Fetching assignments for teacher:', selectedTeacher);
+      const result = await teacherService.getTeacherAssignments(selectedTeacher);
+      console.log('Assignments result:', result);
+      return result;
+    },
     enabled: !!selectedTeacher
   });
 
@@ -179,8 +185,9 @@ const TeacherSubjectAssignmentPage: React.FC = () => {
   // Save assignments mutation
   const saveAssignmentsMutation = useMutation({
     mutationFn: async (data: { teacherId: number, assignments: SubjectAssignment[] }) => {
+      console.log('=== BULK ASSIGNMENT DEBUG ===');
       console.log('Saving assignments for teacher:', data.teacherId);
-      console.log('Assignments to save:', data.assignments);
+      console.log('Raw assignments to save:', data.assignments);
       
       // Ensure classGroupId is correctly set for each assignment
       const validAssignments = data.assignments.map(assignment => ({
@@ -189,15 +196,23 @@ const TeacherSubjectAssignmentPage: React.FC = () => {
       }));
       
       console.log('Final assignments being sent to API:', validAssignments);
+      console.log('Number of assignments:', validAssignments.length);
       
       if (validAssignments.length === 0) {
         throw new Error('No assignments to save');
       }
       
-      // @ts-ignore
-      const result = await teacherService.saveTeacherAssignments(data.teacherId, validAssignments);
-      console.log('API response:', result);
-      return result;
+      try {
+        // @ts-ignore
+        const result = await teacherService.saveTeacherAssignments(data.teacherId, validAssignments);
+        console.log('API response:', result);
+        console.log('=== END BULK ASSIGNMENT DEBUG ===');
+        return result;
+      } catch (error) {
+        console.error('Error in saveTeacherAssignments:', error);
+        console.log('=== END BULK ASSIGNMENT DEBUG ===');
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log('Save successful, response:', data);
@@ -321,6 +336,9 @@ const TeacherSubjectAssignmentPage: React.FC = () => {
       {/* Teacher Selection */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold mb-4">Select Teacher</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Choose a teacher to view and manage their subject assignments
+        </p>
         <div className="grid grid-cols-1 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Teacher</label>
@@ -341,11 +359,32 @@ const TeacherSubjectAssignmentPage: React.FC = () => {
       </Card>
 
       {/* Current Assignments */}
-      {selectedTeacher && (
+      {!selectedTeacher ? (
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Current Assignments</h2>
+          <div className="text-center py-8">
+            <h2 className="text-lg font-semibold mb-2">No Teacher Selected</h2>
+            <p className="text-gray-500">
+              Please select a teacher above to view their current subject assignments
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">
+              Current Assignments for {teachers.find(t => t.id === selectedTeacher)?.firstName} {teachers.find(t => t.id === selectedTeacher)?.lastName}
+            </h2>
+            {assignments.length > 0 && (
+              <span className="text-sm text-gray-500">
+                {assignments.length} assignment{assignments.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           {assignmentsLoading ? (
-            <LoadingSpinner />
+            <div className="text-center py-8">
+              <LoadingSpinner />
+              <p className="text-sm text-gray-500 mt-2">Loading assignments...</p>
+            </div>
           ) : assignments && assignments.length > 0 ? (
             <Table>
               <Table.Header>
@@ -376,8 +415,19 @@ const TeacherSubjectAssignmentPage: React.FC = () => {
               </Table.Body>
             </Table>
           ) : (
-            <div className="text-center py-4 text-gray-500">
-              No assignments yet. Add some below.
+            <div className="text-center py-8 text-gray-500">
+              <div className="mb-4">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Assignments Found</h3>
+              <p className="text-gray-500 mb-4">
+                This teacher doesn't have any subject assignments yet.
+              </p>
+              <p className="text-sm text-gray-400">
+                Use the form below to add subject assignments for this teacher.
+              </p>
             </div>
           )}
         </Card>

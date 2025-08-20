@@ -4,8 +4,10 @@ import { LoginForm } from '../../components/forms';
 import { useAuth } from '../../hooks/useAuth';
 import type { LoginRequest } from '../../types';
 import LoadingSpinner  from '../../components/common/LoadingSpinner';
+import TenantSelector from '../../components/common/TenantSelector';
 import { toast } from 'react-hot-toast';
 import { getImageUrl } from '../../utils/imageUtils';
+import { getCurrentTenant } from '../../utils/tenant';
 
 const LoginPage: React.FC = () => {
   const { isAuthenticated, isSchoolConfigured, isLoading, login, school, theme } = useAuth();
@@ -33,10 +35,18 @@ const LoginPage: React.FC = () => {
     return <LoadingSpinner />;
   }
 
+  // Check tenant first
+  const currentTenant = getCurrentTenant();
+  if (!currentTenant) {
+    return <Navigate to="/select-school" replace />;
+  }
+
+  // Check school configuration
+  if (!isSchoolConfigured) {
+    return <Navigate to="/setup" replace />;
+  }
+
   if (isAuthenticated) {
-    if (!isSchoolConfigured) {
-      return <Navigate to="/setup" replace />;
-    }
     return <Navigate to="/app" replace />;
   }
 
@@ -85,11 +95,20 @@ const LoginPage: React.FC = () => {
         </div>
         
         <div className="mt-8 space-y-6">
-          <LoginForm 
-            onSubmit={handleLogin}
-            isLoading={loginLoading}
-            error={loginError}
-          />
+          <div 
+            className="bg-transparent rounded-lg p-8"
+            style={{
+              border: `3px solid ${primaryColor}`,
+              color: 'white',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+            }}
+          >
+            <LoginForm 
+              onSubmit={handleLogin}
+              isLoading={loginLoading}
+              error={loginError}
+            />
+          </div>
         </div>
         
         <div className="text-center">

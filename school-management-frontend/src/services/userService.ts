@@ -4,6 +4,8 @@ export interface UserDTO {
   id: number;
   username: string;
   email: string;
+  firstName: string;
+  lastName: string;
   enabled: boolean;
   roles: string[];
   createdAt: string;
@@ -29,6 +31,8 @@ export interface UserRegistrationDTO {
   username: string;
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
   roles: string[];
 }
 

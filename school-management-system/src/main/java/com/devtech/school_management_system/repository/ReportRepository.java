@@ -35,6 +35,12 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
                                                             @Param("section") String section,
                                                             @Param("term") String term,
                                                             @Param("year") String year);
+
+    @Query("SELECT r FROM Report r WHERE r.student.form = :form AND r.student.section = :section AND r.term = :term AND r.academicYear = :academicYear")
+    List<Report> findByStudentFormAndStudentSectionAndTermAndAcademicYear(@Param("form") String form,
+                                                                          @Param("section") String section,
+                                                                          @Param("term") String term,
+                                                                          @Param("academicYear") String academicYear);
     
     void deleteByStudentId(Long studentId);
 }

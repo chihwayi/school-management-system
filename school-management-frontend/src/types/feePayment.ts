@@ -61,6 +61,7 @@ export interface PaymentReceiptDTO {
   paymentDate: string;
   monthlyFeeAmount: number;
   paymentStatus: PaymentStatus;
+  receiptNumber?: string;
 }
 
 export interface DailyPaymentSummaryDTO {

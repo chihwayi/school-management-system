@@ -18,7 +18,14 @@ const UserManagementPage: React.FC = () => {
   const [newEmail, setNewEmail] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ username: '', email: '', password: '', roles: [] as string[] });
+  const [newUser, setNewUser] = useState({ 
+    username: '', 
+    email: '', 
+    password: '', 
+    firstName: '', 
+    lastName: '', 
+    roles: [] as string[] 
+  });
   
   const queryClient = useQueryClient();
   
@@ -128,7 +135,7 @@ const UserManagementPage: React.FC = () => {
   };
   
   const handleCreateUser = () => {
-    if (!newUser.username || !newUser.email || !newUser.password || newUser.roles.length === 0) {
+    if (!newUser.username || !newUser.email || !newUser.password || !newUser.firstName || !newUser.lastName || newUser.roles.length === 0) {
       toast.error('Please fill all fields and select at least one role');
       return;
     }
@@ -137,6 +144,8 @@ const UserManagementPage: React.FC = () => {
       username: newUser.username,
       email: newUser.email,
       password: newUser.password,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
       roles: newUser.roles
     });
   };
@@ -166,26 +175,33 @@ const UserManagementPage: React.FC = () => {
           <h2 className="text-lg font-semibold mb-4">User Accounts</h2>
           <p className="mb-4">This section allows administrators to manage user accounts, reset passwords, and update email addresses.</p>
           
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Username</Table.HeaderCell>
-                <Table.HeaderCell>Email</Table.HeaderCell>
-                <Table.HeaderCell>Roles</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
-                <Table.HeaderCell>Actions</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <div className="overflow-x-auto">
+            <div className="min-w-[1000px]">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>Name</Table.HeaderCell>
+                    <Table.HeaderCell>Username</Table.HeaderCell>
+                    <Table.HeaderCell>Email</Table.HeaderCell>
+                    <Table.HeaderCell>Roles</Table.HeaderCell>
+                    <Table.HeaderCell>Status</Table.HeaderCell>
+                    <Table.HeaderCell className="min-w-[200px]">Actions</Table.HeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
               {loading ? (
                 <Table.Row>
-                  <Table.Cell colSpan={5} className="text-center py-4">Loading...</Table.Cell>
+                  <Table.Cell colSpan={6} className="text-center py-4">Loading...</Table.Cell>
                 </Table.Row>
               ) : users?.filter(user => 
                   user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   user.email.toLowerCase().includes(searchTerm.toLowerCase())
                 ).map((user) => (
                 <Table.Row key={user.id}>
+                  <Table.Cell>
+                    <div className="font-medium">{user.firstName} {user.lastName}</div>
+                    <div className="text-sm text-gray-500">{user.username}</div>
+                  </Table.Cell>
                   <Table.Cell>{user.username}</Table.Cell>
                   <Table.Cell>{user.email}</Table.Cell>
                   <Table.Cell>
@@ -270,11 +286,13 @@ const UserManagementPage: React.FC = () => {
               ))}
               {!loading && (!users || users.length === 0) && (
                 <Table.Row>
-                  <Table.Cell colSpan={5} className="text-center py-4">No users found</Table.Cell>
+                  <Table.Cell colSpan={6} className="text-center py-4">No users found</Table.Cell>
                 </Table.Row>
               )}
-            </Table.Body>
-          </Table>
+                            </Table.Body>
+              </Table>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -421,11 +439,25 @@ const UserManagementPage: React.FC = () => {
         isOpen={isCreateUserModalOpen}
         onClose={() => {
           setIsCreateUserModalOpen(false);
-          setNewUser({ username: '', email: '', password: '', roles: [] });
+          setNewUser({ username: '', email: '', password: '', firstName: '', lastName: '', roles: [] });
         }}
         title="Create New User"
       >
         <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="First Name"
+              value={newUser.firstName}
+              onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+              placeholder="Enter first name"
+            />
+            <Input
+              label="Last Name"
+              value={newUser.lastName}
+              onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+              placeholder="Enter last name"
+            />
+          </div>
           <Input
             label="Username"
             value={newUser.username}
@@ -476,14 +508,14 @@ const UserManagementPage: React.FC = () => {
               variant="outline"
               onClick={() => {
                 setIsCreateUserModalOpen(false);
-                setNewUser({ username: '', email: '', password: '', roles: [] });
+                setNewUser({ username: '', email: '', password: '', firstName: '', lastName: '', roles: [] });
               }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateUser}
-              disabled={!newUser.username || !newUser.email || !newUser.password || newUser.roles.length === 0}
+              disabled={!newUser.username || !newUser.email || !newUser.password || !newUser.firstName || !newUser.lastName || newUser.roles.length === 0}
               loading={createUserMutation.isPending}
             >
               Create User

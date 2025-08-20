@@ -44,6 +44,9 @@ public class FeePayment {
     @Column(nullable = false)
     private LocalDate paymentDate;
 
+    @Column(name = "receipt_number", unique = true)
+    private String receiptNumber;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
@@ -80,6 +83,9 @@ public class FeePayment {
 
     public LocalDate getPaymentDate() { return paymentDate; }
     public void setPaymentDate(LocalDate paymentDate) { this.paymentDate = paymentDate; }
+
+    public String getReceiptNumber() { return receiptNumber; }
+    public void setReceiptNumber(String receiptNumber) { this.receiptNumber = receiptNumber; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

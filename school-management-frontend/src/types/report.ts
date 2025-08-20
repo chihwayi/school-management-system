@@ -14,12 +14,20 @@ export interface Report {
   principalComment?: string;
   attendanceDays?: number;
   totalSchoolDays?: number;
+  attendancePercentage?: number;
   classTeacherSignatureUrl?: string;
   subjectReports?: SubjectReport[];
   classTeacher?: {
     firstName: string;
     lastName: string;
   };
+}
+
+export interface AttendanceStatistics {
+  presentDays: number;
+  absentDays: number;
+  totalSchoolDays: number;
+  attendancePercentage: number;
 }
 
 export interface SubjectReport {

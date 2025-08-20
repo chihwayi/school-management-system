@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,7 +62,7 @@ public class StudentService {
     }
 
     public Student createStudent(String firstName, String lastName, String studentId,
-                                 String form, String section, String level, String academicYear) {
+                                 String form, String section, String level, String academicYear, String enrollmentDate) {
         Student student = new Student();
         student.setFirstName(firstName);
         student.setLastName(lastName);
@@ -80,6 +81,19 @@ public class StudentService {
         }
         student.setAcademicYear(academicYear);
         
+        // Set enrollment date - use provided date or default to today
+        if (enrollmentDate != null && !enrollmentDate.trim().isEmpty()) {
+            try {
+                student.setEnrollmentDate(LocalDate.parse(enrollmentDate));
+            } catch (Exception e) {
+                // If parsing fails, use today's date
+                student.setEnrollmentDate(LocalDate.now());
+            }
+        } else {
+            // If no enrollment date provided, use today's date
+            student.setEnrollmentDate(LocalDate.now());
+        }
+        
         student.setCreatedAt(LocalDateTime.now());
         student.setUpdatedAt(LocalDateTime.now());
 
@@ -95,7 +109,8 @@ public class StudentService {
                 registrationDTO.getForm(),
                 registrationDTO.getSection(),
                 registrationDTO.getLevel(),
-                registrationDTO.getAcademicYear()
+                registrationDTO.getAcademicYear(),
+                registrationDTO.getEnrollmentDate()
         );
 
         // Create guardians if provided

@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { SchoolSetupForm } from '../../components/forms';
+import { TenantSetup } from '../../components/TenantSetup';
 import { useSchoolStore } from '../../store/schoolStore';
 import { useAuth } from '../../hooks/useAuth';
+import { getCurrentTenant } from '../../utils/tenant';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { GraduationCap, Settings, School } from 'lucide-react';
 
@@ -30,10 +32,11 @@ const SchoolSetupPage: React.FC = () => {
     // The store will update isConfigured, triggering redirect
   }
 
-  const handleRefresh = () => {
-    // Manual refresh if needed
-    checkSchoolConfig();
-  };
+  // Check if we have a tenant (we should since we're on a subdomain)
+  const currentTenant = getCurrentTenant();
+  if (!currentTenant) {
+    return <Navigate to="/select-school" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">

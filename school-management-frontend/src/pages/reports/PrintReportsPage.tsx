@@ -4,6 +4,8 @@ import { studentService } from '../../services/studentService';
 import { reportService, type StudentReport } from '../../services/reportService';
 import { signatureService } from '../../services/signatureService';
 import { ministryService } from '../../services/ministryService';
+import { sectionService } from '../../services/sectionService';
+import { classService } from '../../services/classService';
 import { useAuth } from '../../hooks/useAuth';
 import { Printer, Download, Eye, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -18,10 +20,10 @@ const PrintReportsPage: React.FC = () => {
   const [selectedTerm, setSelectedTerm] = useState<string>('Term 1');
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const forms = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 6'];
-  const sections = ['A', 'B', 'C', 'D'];
+  const [forms, setForms] = useState<string[]>([]);
+  const [sections, setSections] = useState<string[]>([]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -31,10 +33,26 @@ const PrintReportsPage: React.FC = () => {
 
   const loadStudents = async () => {
     try {
-      const studentsData = await studentService.getAllStudents();
+      setDataLoading(true);
+      const [studentsData, sectionsData, classesData] = await Promise.all([
+        studentService.getAllStudents(),
+        sectionService.getActiveSections(),
+        classService.getAllClassGroups()
+      ]);
+      
       setStudents(studentsData);
+      
+      // Extract unique sections from database
+      const uniqueSections = sectionsData.map(section => section.name);
+      setSections(uniqueSections);
+      
+      // Extract unique forms from class groups
+      const uniqueForms = [...new Set(classesData.map(cls => cls.form))];
+      setForms(uniqueForms);
     } catch (error) {
-      toast.error('Failed to load students');
+      toast.error('Failed to load data');
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -86,7 +104,30 @@ const PrintReportsPage: React.FC = () => {
           ministryService.getCurrentMinistryLogo()
         ]);
         
-        console.log('Signatures loaded:', { principalSig, classTeacherSig, ministryLogo });
+        // Load teacher signatures for each subject
+        const teacherSignatures = await Promise.all(
+          (report.subjectReports || []).map(async (subjectReport) => {
+            try {
+              const signature = await signatureService.getSubjectTeacherSignature(
+                subjectReport.subjectId,
+                report.form,
+                report.section
+              );
+              return {
+                subjectId: subjectReport.subjectId,
+                signature
+              };
+            } catch (error) {
+              console.error(`Error loading signature for subject ${subjectReport.subjectId}:`, error);
+              return {
+                subjectId: subjectReport.subjectId,
+                signature: null
+              };
+            }
+          })
+        );
+        
+        console.log('Signatures loaded:', { principalSig, classTeacherSig, ministryLogo, teacherSignatures });
         
         const printWindow = window.open('', '_blank', 'width=800,height=1000');
         if (printWindow) {
@@ -132,10 +173,54 @@ const PrintReportsPage: React.FC = () => {
               <head>
                 <title>Student Monthly Progress Report - ${report.studentName}</title>
                 <style>
+                  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@400;600;700&family=Merriweather:wght@400;700&display=swap');
+                  
                   body { 
-                    font-family: Arial, sans-serif; 
+                    font-family: 'Roboto', Arial, sans-serif; 
                     margin: 15px; 
                     color: #333;
+                    line-height: 1.4;
+                  }
+                  
+                  .header { 
+                    font-family: 'Merriweather', serif;
+                  }
+                  
+                  .school-name {
+                    font-family: 'Merriweather', serif;
+                    font-weight: 700;
+                  }
+                  
+                  .report-title {
+                    font-family: 'Open Sans', sans-serif;
+                    font-weight: 600;
+                  }
+                  
+                  .subject-name {
+                    font-family: 'Open Sans', sans-serif;
+                    font-weight: 600;
+                    font-size: 11px;
+                  }
+                  
+                  .grade {
+                    font-family: 'Roboto', sans-serif;
+                    font-weight: 700;
+                    font-size: 10px;
+                  }
+                  
+                  .comment {
+                    font-family: 'Open Sans', sans-serif;
+                    font-size: 8px;
+                    line-height: 1.3;
+                  }
+                  
+                  .field-label {
+                    font-family: 'Open Sans', sans-serif;
+                    font-weight: 600;
+                  }
+                  
+                  .field-value {
+                    font-family: 'Roboto', sans-serif;
                   }
                   .header { 
                     display: flex; 
@@ -276,37 +361,48 @@ const PrintReportsPage: React.FC = () => {
                   <div class="info-field"><span class="field-label">Month:</span> <span class="field-value">${selectedTerm}</span></div>
                 </div>
                 
-                <table class="subjects-table">
+                <table class="subjects-table" style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 9px;">
                   <thead>
-                    <tr>
-                      <th rowspan="2">SUBJECT</th>
-                      <th colspan="2">COURSE WORK MARK</th>
-                      <th colspan="2">EXAM MARK</th>
-                      <th rowspan="2">SUBJECT T'R's COMMENT</th>
-                      <th rowspan="2">TEACHER'S SIGNATURE</th>
+                    <tr style="background-color: ${school?.primaryColor || '#4B0082'}; color: white; font-weight: bold;">
+                      <th rowspan="2" style="font-family: 'Open Sans', sans-serif; font-weight: 600; padding: 8px; border: 1px solid #ddd;">SUBJECT</th>
+                      <th colspan="2" style="font-family: 'Open Sans', sans-serif; font-weight: 600; padding: 8px; border: 1px solid #ddd;">COURSE WORK MARK</th>
+                      <th colspan="2" style="font-family: 'Open Sans', sans-serif; font-weight: 600; padding: 8px; border: 1px solid #ddd;">EXAM MARK</th>
+                      <th rowspan="2" style="font-family: 'Open Sans', sans-serif; font-weight: 600; padding: 8px; border: 1px solid #ddd;">SUBJECT T'R's COMMENT</th>
+                      <th rowspan="2" style="font-family: 'Open Sans', sans-serif; font-weight: 600; padding: 8px; border: 1px solid #ddd;">TEACHER'S SIGNATURE</th>
                     </tr>
-                    <tr>
-                      <th>%</th><th>GR</th>
-                      <th>%</th><th>GR</th>
+                    <tr style="background-color: ${school?.primaryColor || '#4B0082'}; color: white; font-weight: bold;">
+                      <th style="font-family: 'Roboto', sans-serif; font-weight: 500; padding: 4px; border: 1px solid #ddd;">%</th>
+                      <th style="font-family: 'Roboto', sans-serif; font-weight: 500; padding: 4px; border: 1px solid #ddd;">GR</th>
+                      <th style="font-family: 'Roboto', sans-serif; font-weight: 500; padding: 4px; border: 1px solid #ddd;">%</th>
+                      <th style="font-family: 'Roboto', sans-serif; font-weight: 500; padding: 4px; border: 1px solid #ddd;">GR</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${Object.keys(categorizedSubjects).map(category => {
                       if (categorizedSubjects[category].length === 0) return '';
                       return `
-                        <tr><td colspan="7" class="category-header">${category.toUpperCase()}</td></tr>
+                        <tr><td colspan="7" class="category-header" style="background-color: #f8f9fa; font-family: 'Merriweather', serif; font-weight: 700; font-size: 10px; padding: 8px; border: 1px solid #ddd; text-align: center;">${category.toUpperCase()}</td></tr>
                         ${categorizedSubjects[category].map(sr => {
                           const cwGrade = sr.courseworkMark && sr.courseworkMark >= 80 ? 'A' : sr.courseworkMark >= 70 ? 'B' : sr.courseworkMark >= 60 ? 'C' : sr.courseworkMark >= 50 ? 'D' : sr.courseworkMark ? 'F' : '-';
                           const examGrade = sr.examMark && sr.examMark >= 80 ? 'A' : sr.examMark >= 70 ? 'B' : sr.examMark >= 60 ? 'C' : sr.examMark >= 50 ? 'D' : sr.examMark ? 'F' : '-';
+                          
+                          // Find teacher signature for this subject
+                          const teacherSignature = teacherSignatures.find(ts => ts.subjectId === sr.subjectId);
+                          
                           return `
                             <tr>
-                              <td style="text-align: left;">${sr.subjectName}</td>
-                              <td>${sr.courseworkMark !== null && sr.courseworkMark !== undefined ? Math.round(sr.courseworkMark) : '-'}</td>
-                              <td>${sr.courseworkMark ? cwGrade : '-'}</td>
-                              <td>${sr.examMark !== null && sr.examMark !== undefined ? Math.round(sr.examMark) : '-'}</td>
-                              <td>${sr.examMark ? examGrade : '-'}</td>
-                              <td style="text-align: left; font-size: 8px; max-width: 120px; word-wrap: break-word;">${sr.comment || '<span style="color: #999;">No comment</span>'}</td>
-                              <td>${sr.teacherSignatureUrl ? `<img src="http://localhost:8080${sr.teacherSignatureUrl}" class="table-signature-img">` : sr.teacherId === 1 ? `<img src="http://localhost:8080/uploads/signatures/signature_1_1c6a5b6e-b180-47fc-811a-9d8779fa7d68.jpg" class="table-signature-img">` : '<span style="color: #999; font-size: 7px;">No signature</span>'}</td>
+                              <td style="text-align: left; padding: 6px; border: 1px solid #ddd;" class="subject-name">${sr.subjectName}</td>
+                              <td style="font-weight: 500; padding: 6px; border: 1px solid #ddd; text-align: center;">${sr.courseworkMark !== null && sr.courseworkMark !== undefined ? Math.round(sr.courseworkMark) : '-'}</td>
+                              <td class="grade" style="padding: 6px; border: 1px solid #ddd; text-align: center;">${sr.courseworkMark ? cwGrade : '-'}</td>
+                              <td style="font-weight: 500; padding: 6px; border: 1px solid #ddd; text-align: center;">${sr.examMark !== null && sr.examMark !== undefined ? Math.round(sr.examMark) : '-'}</td>
+                              <td class="grade" style="padding: 6px; border: 1px solid #ddd; text-align: center;">${sr.examMark ? examGrade : '-'}</td>
+                              <td style="text-align: left; max-width: 120px; word-wrap: break-word; padding: 6px; border: 1px solid #ddd;" class="comment">${sr.comment || '<span style="color: #999;">No comment</span>'}</td>
+                              <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">
+                                ${teacherSignature && teacherSignature.signature ? 
+                                  `<img src="http://localhost:8080${teacherSignature.signature.signatureUrl}" class="table-signature-img" style="max-height: 20px; max-width: 40px;">` : 
+                                  '<span style="color: #999; font-size: 7px; font-family: \'Open Sans\', sans-serif;">No signature</span>'
+                                }
+                              </td>
                             </tr>
                           `;
                         }).join('')}
@@ -319,21 +415,21 @@ const PrintReportsPage: React.FC = () => {
                   <div class="comments-signatures">
                     <div class="comment-field">
                       <span class="field-label">Form Teacher's Comments:</span><br>
-                      <span class="field-value" style="font-size: 10px;">${report.overallComment || ''}</span>
+                      <span class="field-value" style="font-size: 10px; font-family: 'Open Sans', sans-serif;">${report.overallComment || ''}</span>
                     </div>
                     <div class="signature-field">
                       <span class="field-label">Form Teacher's Signature:</span>
-                      ${classTeacherSig && classTeacherSig.signatureUrl ? `<img src="http://localhost:8080${classTeacherSig.signatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px;">No signature uploaded</span>'}
+                      ${classTeacherSig && classTeacherSig.signatureUrl ? `<img src="http://localhost:8080${classTeacherSig.signatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px; font-family: \'Open Sans\', sans-serif;">No signature uploaded</span>'}
                     </div>
                     <div class="signature-field">
                       <span class="field-label">Principal's Signature:</span>
-                      ${principalSig && principalSig.signatureUrl ? `<img src="http://localhost:8080${principalSig.signatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px;">No signature uploaded</span>'}
+                      ${principalSig && principalSig.signatureUrl ? `<img src="http://localhost:8080${principalSig.signatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px; font-family: \'Open Sans\', sans-serif;">No signature uploaded</span>'}
                     </div>
                     <div class="signature-field">
-                      <span class="field-label">Parent's Signature:</span> <span style="color: #333; font-size: 10px;">___________________________</span>
+                      <span class="field-label">Parent's Signature:</span> <span style="color: #333; font-size: 10px; font-family: 'Roboto', sans-serif;">___________________________</span>
                     </div>
                   </div>
-                  <div class="school-stamp">
+                  <div class="school-stamp" style="font-family: 'Merriweather', serif; font-weight: 700;">
                     SCHOOL STAMP
                   </div>
                 </div>
@@ -378,13 +474,21 @@ const PrintReportsPage: React.FC = () => {
 
       {/* Filters */}
       <Card className="p-4">
+        {dataLoading && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              Loading forms and sections...
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select
             label="Form"
             value={selectedForm}
             onChange={(e) => setSelectedForm(e.target.value)}
+            disabled={dataLoading}
             options={[
-              { value: '', label: 'Select Form' },
+              { value: '', label: dataLoading ? 'Loading...' : forms.length === 0 ? 'No forms available' : 'Select Form' },
               ...forms.map(form => ({ value: form, label: form }))
             ]}
           />
@@ -393,8 +497,9 @@ const PrintReportsPage: React.FC = () => {
             label="Section"
             value={selectedSection}
             onChange={(e) => setSelectedSection(e.target.value)}
+            disabled={dataLoading}
             options={[
-              { value: '', label: 'Select Section' },
+              { value: '', label: dataLoading ? 'Loading...' : sections.length === 0 ? 'No sections available' : 'Select Section' },
               ...sections.map(section => ({ value: section, label: section }))
             ]}
           />
@@ -422,7 +527,7 @@ const PrintReportsPage: React.FC = () => {
         </div>
         
         <div className="mt-4 flex space-x-3">
-          <Button onClick={loadReports} loading={loading}>
+          <Button onClick={loadReports} loading={loading} disabled={dataLoading}>
             <FileText className="h-4 w-4 mr-2" />
             Load Reports
           </Button>

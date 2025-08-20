@@ -307,19 +307,21 @@ const AssessmentsPage: React.FC = () => {
         <div className="p-4 border-b">
           <h3 className="text-lg font-medium">Assessment Records</h3>
         </div>
-        <Table>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Student</Table.HeaderCell>
-              <Table.HeaderCell>Subject</Table.HeaderCell>
-              <Table.HeaderCell>Assessment</Table.HeaderCell>
-              <Table.HeaderCell>Score</Table.HeaderCell>
-              <Table.HeaderCell>Term</Table.HeaderCell>
-              <Table.HeaderCell>Date</Table.HeaderCell>
-              <Table.HeaderCell>Actions</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <div className="overflow-x-auto">
+          <div className="min-w-[1200px]">
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Student</Table.HeaderCell>
+                  <Table.HeaderCell>Subject</Table.HeaderCell>
+                  <Table.HeaderCell>Assessment</Table.HeaderCell>
+                  <Table.HeaderCell>Score</Table.HeaderCell>
+                  <Table.HeaderCell>Term</Table.HeaderCell>
+                  <Table.HeaderCell>Date</Table.HeaderCell>
+                  <Table.HeaderCell className="min-w-[200px]">Actions</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
             {getFilteredAssessments().length > 0 ? (
               getFilteredAssessments().map(assessment => (
                 <Table.Row key={assessment.id}>
@@ -369,7 +371,7 @@ const AssessmentsPage: React.FC = () => {
                       {new Date(assessment.date).toLocaleDateString()}
                     </div>
                   </Table.Cell>
-                  <Table.Cell>
+                  <Table.Cell className="min-w-[200px]">
                     <div className="flex space-x-2">
                       <Button
                         variant="ghost"
@@ -401,6 +403,8 @@ const AssessmentsPage: React.FC = () => {
             )}
           </Table.Body>
         </Table>
+          </div>
+        </div>
       </Card>
 
       {/* Assessment Modal */}

@@ -230,8 +230,9 @@ export const VALIDATION_RULES = {
     MESSAGE: 'Please enter a valid email address'
   },
   PHONE: {
-    PATTERN: /^[\+]?[0-9]{10,15}$/,
-    MESSAGE: 'Please enter a valid phone number'
+    // Zimbabwe phone number pattern: +263 7X XXX XXXX or 07X XXX XXXX
+    PATTERN: /^(\+263|263)?[7][1-8][0-9]{7}$/,
+    MESSAGE: 'Please enter a valid Zimbabwe phone number (e.g., +263 77 123 4567 or 077 123 4567)'
   },
   STUDENT_ID: {
     PATTERN: /^[A-Z0-9]{4,10}$/,

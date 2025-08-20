@@ -31,8 +31,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading, error }) => 
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <div className="p-8">
+    <div>
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
@@ -46,9 +45,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading, error }) => 
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           <div>
-            <label htmlFor="usernameOrEmail" className="block text-sm font-medium text-gray-700 mb-2">
-              Username or Email
-            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User className="h-5 w-5 text-gray-400" />
@@ -77,9 +73,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading, error }) => 
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock className="h-5 w-5 text-gray-400" />
@@ -133,8 +126,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading, error }) => 
             </Button>
           </div>
         </form>
-      </div>
-    </Card>
+    </div>
   );
 };
 

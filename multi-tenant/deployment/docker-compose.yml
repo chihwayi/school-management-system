@@ -1,0 +1,192 @@
+version: '3.8'
+
+services:
+  # Central MySQL Database (for admin panel and school databases)
+  mysql:
+    image: mysql:8.0
+    container_name: multi_tenant_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: school_management_system_admin
+      MYSQL_USER: ${MYSQL_USER:-school_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-school_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./../mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - multi_tenant_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Central Admin Panel Backend
+  admin-backend:
+    build:
+      context: ./../admin-panel/backend
+      dockerfile: Dockerfile
+    container_name: multi_tenant_admin_backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/school_management_system_admin?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      BASE_DOMAIN: ${BASE_DOMAIN:-yoursystem.com}
+    ports:
+      - "8081:8080"
+    volumes:
+      - admin_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - multi_tenant_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Central Admin Panel Frontend
+  admin-frontend:
+    build:
+      context: ./../admin-panel/frontend
+      dockerfile: Dockerfile
+    container_name: multi_tenant_admin_frontend
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://admin-backend:8080
+      REACT_APP_BASE_DOMAIN: ${BASE_DOMAIN:-yoursystem.com}
+    ports:
+      - "8082:80"
+    depends_on:
+      admin-backend:
+        condition: service_healthy
+    networks:
+      - multi_tenant_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx Reverse Proxy (Routes schools to appropriate containers)
+  nginx:
+    image: nginx:alpine
+    container_name: multi_tenant_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./../shared/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./../shared/nginx/conf.d:/etc/nginx/conf.d
+      - ./../shared/ssl:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - admin-backend
+    networks:
+      - multi_tenant_network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: multi_tenant_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./../shared/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./../shared/monitoring/schools:/etc/prometheus/schools
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - multi_tenant_network
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: multi_tenant_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./../shared/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./../shared/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - multi_tenant_network
+
+  # Backup Service
+  backup-service:
+    image: alpine:latest
+    container_name: multi_tenant_backup_service
+    restart: unless-stopped
+    volumes:
+      - ./../shared/backup:/backup
+      - ./../tenant-manager/scripts:/scripts
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    command: >
+      sh -c "
+        apk add --no-cache mysql-client bash &&
+        while true; do
+          echo 'Running scheduled backups...' &&
+          /scripts/backup-all-schools.sh &&
+          sleep 86400
+        done
+      "
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - multi_tenant_network
+
+  # Email Service (for welcome emails and notifications)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: multi_tenant_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - multi_tenant_network
+
+volumes:
+  mysql_data:
+    driver: local
+  admin_uploads:
+    driver: local
+  nginx_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  multi_tenant_network:
+    driver: bridge

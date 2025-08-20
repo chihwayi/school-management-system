@@ -1,6 +1,8 @@
 package com.devtech.school_management_system.controller;
 
 import com.devtech.school_management_system.entity.Attendance;
+import com.devtech.school_management_system.dto.AttendanceDTO;
+import com.devtech.school_management_system.dto.AttendanceRequestDTO;
 import com.devtech.school_management_system.service.AttendanceService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
@@ -19,10 +21,8 @@ public class AttendanceController {
     }
 
     @PostMapping
-    public Attendance markAttendance(@RequestParam Long studentId,
-                                     @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                                     @RequestParam boolean present) {
-        return attendanceService.markAttendance(studentId, date, present);
+    public Attendance markAttendance(@RequestBody AttendanceRequestDTO request) {
+        return attendanceService.markAttendance(request.getStudentId(), request.getDate(), request.isPresent());
     }
 
     @GetMapping("/student/{studentId}")
@@ -31,7 +31,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/date/{date}")
-    public List<Attendance> getAttendanceByDate(
+    public List<AttendanceDTO> getAttendanceByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         // Validate that the date is not in the future
         if (date.isAfter(LocalDate.now())) {

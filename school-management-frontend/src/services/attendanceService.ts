@@ -28,8 +28,11 @@ export const attendanceService = {
 
   getAttendanceByDate: async (date: string): Promise<Attendance[]> => {
     try {
+      console.log('Fetching attendance for date:', date);
       // Remove the /api prefix since it's already in the baseURL
       const response = await api.get(`/attendance/date/${date}`);
+      console.log('API response:', response);
+      console.log('Response data:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error in getAttendanceByDate:', error);

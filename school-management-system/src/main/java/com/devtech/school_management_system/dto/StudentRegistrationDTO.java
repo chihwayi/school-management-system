@@ -10,6 +10,7 @@ public class StudentRegistrationDTO {
     private String section;
     private String level;
     private String academicYear;
+    private String enrollmentDate; // Optional: enrollment date in YYYY-MM-DD format
     private List<Long> subjectIds; // Optional: list of subjects to assign
     private List<GuardianDTO> guardians; // Guardian information
 
@@ -32,6 +33,14 @@ public class StudentRegistrationDTO {
 
     public void setAcademicYear(String academicYear) {
         this.academicYear = academicYear;
+    }
+
+    public String getEnrollmentDate() {
+        return enrollmentDate;
+    }
+
+    public void setEnrollmentDate(String enrollmentDate) {
+        this.enrollmentDate = enrollmentDate;
     }
 
     public String getFirstName() {

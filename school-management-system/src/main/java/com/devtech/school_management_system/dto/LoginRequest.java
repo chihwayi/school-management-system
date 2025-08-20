@@ -4,14 +4,16 @@ public class LoginRequest {
     private String usernameOrEmail;
     private String password;
 
-    public LoginRequest() {
-    }
+    // Default constructor
+    public LoginRequest() {}
 
+    // Constructor with parameters
     public LoginRequest(String usernameOrEmail, String password) {
         this.usernameOrEmail = usernameOrEmail;
         this.password = password;
     }
 
+    // Getters and Setters
     public String getUsernameOrEmail() {
         return usernameOrEmail;
     }
