@@ -7,7 +7,7 @@ import { Card, Button, Input, Select, Table, Modal } from '../../components/ui';
 import StudentCreateForm from '../../components/forms/StudentCreateForm';
 import StudentEditForm from '../../components/forms/StudentEditForm';
 import StudentImport from '../../components/students/StudentImport';
-import { Plus, Search, Filter, Edit, Trash2, Eye, Upload } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, Eye, Upload, Download } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -49,6 +49,49 @@ const StudentsPage: React.FC = () => {
         toast.error('Failed to delete student');
       }
     }
+  };
+
+  const exportStudentsToCSV = () => {
+    const filteredStudents = students.filter(student => {
+      const matchesSearch = !searchTerm || 
+        student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesLevel = !levelFilter || student.level === levelFilter;
+      const matchesForm = !formFilter || student.form === formFilter;
+      
+      return matchesSearch && matchesLevel && matchesForm;
+    });
+
+    const headers = ['Student ID', 'First Name', 'Last Name', 'Form', 'Section', 'Level', 'Academic Year', 'Enrollment Date', 'WhatsApp Number'];
+    const csvData = filteredStudents.map(student => [
+      student.studentId,
+      student.firstName,
+      student.lastName,
+      student.form,
+      student.section,
+      student.level,
+      student.academicYear,
+      student.enrollmentDate,
+      student.whatsappNumber || ''
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `students_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Students exported successfully');
   };
 
   const handleCreateStudent = async (studentData: any, guardians: any[]) => {
@@ -136,6 +179,10 @@ const StudentsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Students Management</h1>
         <div className="flex space-x-2">
+          <Button onClick={exportStudentsToCSV} variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
           <Button onClick={() => setIsImportModalOpen(true)} variant="outline">
             <Upload className="w-4 h-4 mr-2" />
             Import Students

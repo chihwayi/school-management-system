@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -8,7 +8,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   containerClassName?: string;
 }
 
-const Textarea: React.FC<TextareaProps> = ({
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
   label,
   error,
   helperText,
@@ -16,7 +16,7 @@ const Textarea: React.FC<TextareaProps> = ({
   className,
   id,
   ...props
-}) => {
+}, ref) => {
   const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
 
   return (
@@ -32,6 +32,7 @@ const Textarea: React.FC<TextareaProps> = ({
       
       <textarea
         id={textareaId}
+        ref={ref}
         className={cn(
           'block w-full rounded-md border-gray-300 shadow-sm transition-colors',
           'focus:border-primary-500 focus:ring-primary-500',
@@ -57,6 +58,8 @@ const Textarea: React.FC<TextareaProps> = ({
       )}
     </div>
   );
-};
+});
+
+Textarea.displayName = 'Textarea';
 
 export default Textarea;

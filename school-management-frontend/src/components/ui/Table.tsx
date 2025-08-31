@@ -62,7 +62,7 @@ const TableRow: React.FC<TableRowProps> = ({ children, className, onClick }) => 
 const TableHeaderCell: React.FC<TableHeaderCellProps> = ({ children, className, sortable = false, onSort }) => (
   <th
     className={cn(
-      'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider',
+      'px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap',
       sortable ? 'cursor-pointer hover:bg-gray-100' : '',
       className
     )}
@@ -85,7 +85,7 @@ const TableHeaderCell: React.FC<TableHeaderCellProps> = ({ children, className, 
 );
 
 const TableCell: React.FC<TableCellProps> = ({ children, className }) => (
-  <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-900', className)}>
+  <td className={cn('px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900', className)}>
     {children}
   </td>
 );
@@ -123,10 +123,12 @@ type TableComponent = React.FC<TableProps> & {
 };
 
 const Table: TableComponent = ({ children, className }) => (
-  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-    <table className={cn('min-w-full divide-y divide-gray-300', className)}>
-      {children}
-    </table>
+  <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+    <div className="inline-block min-w-full align-middle">
+      <table className={cn('min-w-full divide-y divide-gray-300', className)}>
+        {children}
+      </table>
+    </div>
   </div>
 );
 

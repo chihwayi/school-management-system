@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -10,7 +10,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   containerClassName?: string;
 }
 
-const Input: React.FC<InputProps> = ({
+const Input = forwardRef<HTMLInputElement, InputProps>(({
   label,
   error,
   helperText,
@@ -20,7 +20,7 @@ const Input: React.FC<InputProps> = ({
   className,
   id,
   ...props
-}) => {
+}, ref) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
   return (
@@ -45,6 +45,7 @@ const Input: React.FC<InputProps> = ({
         
         <input
           id={inputId}
+          ref={ref}
           className={cn(
             'block w-full rounded-md border-gray-300 shadow-sm transition-colors',
             'focus:border-primary-500 focus:ring-primary-500',
@@ -80,6 +81,8 @@ const Input: React.FC<InputProps> = ({
       )}
     </div>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 export default Input;

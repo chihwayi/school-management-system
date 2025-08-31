@@ -7,10 +7,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
+
+# Set environment variable for API base URL
+ENV VITE_API_BASE_URL=http://localhost:8080/api
 
 # Build the application
 RUN npm run build

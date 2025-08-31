@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import {
@@ -12,7 +12,15 @@ import {
     UserCheck,
     BarChart3,
     Shield,
-    DollarSign
+    DollarSign,
+    Brain,
+    Upload,
+    Sparkles,
+    BarChart,
+    Plus,
+    Copy,
+    ChevronDown,
+    ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants';
@@ -27,6 +35,14 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const location = useLocation();
     const { isAdmin, isClerk, isTeacher, isClassTeacher, school, theme } = useAuth();
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+    // Auto-expand AI Assistant when on AI pages
+    useEffect(() => {
+        if (location.pathname.startsWith('/app/ai') && !expandedItems.includes('AI Assistant')) {
+            setExpandedItems([...expandedItems, 'AI Assistant']);
+        }
+    }, [location.pathname, expandedItems]);
     
 
     
@@ -151,6 +167,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             icon: DollarSign,
             current: location.pathname === ROUTES.FEES_SETTINGS,
             show: isAdmin() || isClerk()
+        },
+        {
+            name: 'AI Assistant',
+            href: ROUTES.AI_DASHBOARD,
+            icon: Brain,
+            current: location.pathname.startsWith('/app/ai'),
+            show: isTeacher() || isClassTeacher(), // Only visible to teachers
+            children: [
+                { name: 'Dashboard', href: ROUTES.AI_DASHBOARD, current: location.pathname === ROUTES.AI_DASHBOARD },
+                { name: 'Resources', href: ROUTES.AI_RESOURCES, current: location.pathname === ROUTES.AI_RESOURCES, show: isTeacher() || isClassTeacher() },
+                { name: 'Generate Content', href: ROUTES.AI_GENERATE, current: location.pathname === ROUTES.AI_GENERATE, show: isTeacher() || isClassTeacher() },
+                { name: 'My Content', href: ROUTES.AI_CONTENT, current: location.pathname === ROUTES.AI_CONTENT, show: isTeacher() || isClassTeacher() },
+                { name: 'Templates', href: ROUTES.AI_TEMPLATES, current: location.pathname === ROUTES.AI_TEMPLATES, show: isTeacher() || isClassTeacher() },
+                { name: 'Analytics', href: ROUTES.AI_ANALYTICS, current: location.pathname === ROUTES.AI_ANALYTICS, show: isTeacher() || isClassTeacher() },
+                { name: 'Learning Resources', href: ROUTES.AI_STUDENT_CONTENT, current: location.pathname === ROUTES.AI_STUDENT_CONTENT, show: isTeacher() || isClassTeacher() }
+            ]
         }
     ];
 
@@ -195,28 +227,93 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 space-y-1">
                 {visibleNavigation.map((item) => (
-                    <Link
-                        key={item.name}
-                        to={item.href}
-                        className={cn(
-                            'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                            item.current
-                                ? 'text-white'
-                                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    <div key={item.name}>
+                        {item.children ? (
+                            // Nested navigation item
+                            <div>
+                                <button
+                                    onClick={() => {
+                                        const isExpanded = expandedItems.includes(item.name);
+                                        if (isExpanded) {
+                                            setExpandedItems(expandedItems.filter(name => name !== item.name));
+                                        } else {
+                                            setExpandedItems([...expandedItems, item.name]);
+                                        }
+                                    }}
+                                    className={cn(
+                                        'group flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                                        item.current
+                                            ? 'text-white'
+                                            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                    )}
+                                    style={item.current ? { backgroundColor: primaryColor } : {}}
+                                >
+                                    <div className="flex items-center">
+                                        <item.icon
+                                            className={cn(
+                                                'mr-3 h-5 w-5 flex-shrink-0',
+                                                item.current
+                                                    ? 'text-white'
+                                                    : 'text-gray-400 group-hover:text-white'
+                                            )}
+                                        />
+                                        {item.name}
+                                    </div>
+                                    {expandedItems.includes(item.name) ? (
+                                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    ) : (
+                                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                                    )}
+                                </button>
+                                
+                                {expandedItems.includes(item.name) && (
+                                    <div className="ml-6 mt-1 space-y-1">
+                                        {item.children
+                                            .filter(child => child.show !== false)
+                                            .map((child) => (
+                                                <Link
+                                                    key={child.name}
+                                                    to={child.href}
+                                                    className={cn(
+                                                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                                                        child.current
+                                                            ? 'text-white'
+                                                            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                                    )}
+                                                    style={child.current ? { backgroundColor: primaryColor } : {}}
+                                                    onClick={onClose}
+                                                >
+                                                    {child.name}
+                                                </Link>
+                                            ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            // Regular navigation item
+                            <Link
+                                to={item.href}
+                                className={cn(
+                                    'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                                    item.current
+                                        ? 'text-white'
+                                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                )}
+                                style={item.current ? { backgroundColor: primaryColor } : {}}
+                                onClick={onClose}
+                            >
+                                <item.icon
+                                    className={cn(
+                                        'mr-3 h-5 w-5 flex-shrink-0',
+                                        item.current
+                                            ? 'text-white'
+                                            : 'text-gray-400 group-hover:text-white'
+                                    )}
+                                />
+                                {item.name}
+                            </Link>
                         )}
-                        style={item.current ? { backgroundColor: primaryColor } : {}}
-                        onClick={onClose}
-                    >
-                        <item.icon
-                            className={cn(
-                                'mr-3 h-5 w-5 flex-shrink-0',
-                                item.current
-                                    ? 'text-white'
-                                    : 'text-gray-400 group-hover:text-white'
-                            )}
-                        />
-                        {item.name}
-                    </Link>
+                    </div>
                 ))}
             </nav>
 

@@ -77,5 +77,10 @@ export const userService = {
   createUser: async (data: UserRegistrationDTO): Promise<UserDTO> => {
     const response = await api.post('/users/create', data);
     return response.data;
+  },
+
+  deleteUser: async (username: string): Promise<void> => {
+    const response = await api.delete(`/users/${username}`);
+    return response.data;
   }
 };

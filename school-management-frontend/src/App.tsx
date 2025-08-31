@@ -8,16 +8,29 @@ import { Toaster } from 'react-hot-toast';
 import ThemeProvider from './components/common/ThemeProvider';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import MainLayout from './components/layout/MainLayout';
+import ProtectedRoute from './components/common/ProtectedRoute';
 
 // Auth & Setup Pages
 import LoginPage from './pages/auth/LoginPage';
+import StudentParentLoginPage from './pages/auth/StudentParentLoginPage';
 import SchoolSetupPage from './pages/setup/SchoolSetupPage';
 
 // Dashboard Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentFinancePage from './pages/student/StudentFinancePage';
+import StudentAssignmentsPage from './pages/student/StudentAssignmentsPage';
+import StudentReportsPage from './pages/student/StudentReportsPage';
+import StudentReportDetailPage from './pages/student/StudentReportDetailPage';
+import ParentDashboard from './pages/parent/ParentDashboard';
+import ParentChildrenPage from './pages/parent/ParentChildrenPage';
+import ParentFinancePage from './pages/parent/ParentFinancePage';
+import ParentReportsPage from './pages/parent/ParentReportsPage';
+import ParentProfilePage from './pages/parent/ParentProfilePage';
 
 // Management Pages
 import { StudentsPage, StudentDetailPage, StudentSubjectAssignmentPage } from './pages/students';
+import StudentEditPage from './pages/students/StudentEditPage';
 import { TeachersPage, TeacherDetailPage, TeacherSubjectAssignmentPage } from './pages/teachers';
 import { ClassesPage, ClassDetailPage } from './pages/classes';
 import { SubjectsPage, SubjectDetailPage } from './pages/subjects';
@@ -30,6 +43,17 @@ import { GuardiansPage, GuardianDetailPage } from './pages/guardians';
 import { FeePaymentPage, PaymentStatusPage, FinancialReportsPage, FeeSettingsPage } from './pages/fees';
 import SectionsPage from './pages/sections/SectionsPage';
 import { UserManagementPage } from './pages/users';
+
+// AI Pages
+import { 
+  AiDashboardPage, 
+  AiResourcesPage, 
+  AiGeneratePage, 
+  AiContentPage, 
+  AiAnalyticsPage 
+} from './pages/ai';
+import AiTemplatesPage from './pages/ai/AiTemplatesPage';
+import AiStudentContentPage from './pages/ai/AiStudentContentPage';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
@@ -118,6 +142,8 @@ const App: React.FC = () => {
               
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/student/login" element={<StudentParentLoginPage userType="student" />} />
+              <Route path="/parent/login" element={<StudentParentLoginPage userType="parent" />} />
 
               {/* Protected Routes */}
               <Route path="/app" element={
@@ -134,6 +160,7 @@ const App: React.FC = () => {
                 {/* Student Management */}
                 <Route path="students" element={<StudentsPage />} />
                 <Route path="students/:id" element={<StudentDetailPage />} />
+                <Route path="students/:id/edit" element={<StudentEditPage />} />
                 <Route path="students/subjects" element={<StudentSubjectAssignmentPage />} />
                 <Route path="students/:id/guardians/add" element={<div>Add Guardian - Coming Soon</div>} />
 
@@ -180,9 +207,35 @@ const App: React.FC = () => {
                 {/* User Management */}
                 <Route path="users" element={<UserManagementPage />} />
 
-                {/* Catch all - redirect to dashboard */}
-                <Route path="*" element={<Navigate to="/app" replace />} />
+                {/* AI Assistant Routes - Only for Teachers */}
+                <Route path="ai" element={<ProtectedRoute element={<AiDashboardPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/resources" element={<ProtectedRoute element={<AiResourcesPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/generate" element={<ProtectedRoute element={<AiGeneratePage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/content" element={<ProtectedRoute element={<AiContentPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/analytics" element={<ProtectedRoute element={<AiAnalyticsPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/templates" element={<ProtectedRoute element={<AiTemplatesPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/student-content" element={<ProtectedRoute element={<AiStudentContentPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+
               </Route>
+
+              {/* Student Portal Routes */}
+              <Route path="/student" element={<StudentDashboard />} />
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/finance" element={<StudentFinancePage />} />
+              <Route path="/student/assignments" element={<StudentAssignmentsPage />} />
+              <Route path="/student/reports" element={<StudentReportsPage />} />
+              <Route path="/student/reports/:reportId" element={<StudentReportDetailPage />} />
+
+              {/* Parent Portal Routes */}
+              <Route path="/parent" element={<ParentDashboard />} />
+              <Route path="/parent/dashboard" element={<ParentDashboard />} />
+              <Route path="/parent/children" element={<ParentChildrenPage />} />
+              <Route path="/parent/finance/:childId" element={<ParentFinancePage />} />
+              <Route path="/parent/reports/:childId" element={<ParentReportsPage />} />
+              <Route path="/parent/profile/:childId" element={<ParentProfilePage />} />
+
+              {/* Catch all - redirect to dashboard */}
+              <Route path="*" element={<Navigate to="/app" replace />} />
             </Routes>
 
             {/* Global Components */}

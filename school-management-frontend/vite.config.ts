@@ -12,13 +12,27 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
-          ui: ['lucide-react', 'react-hot-toast']
+          ui: ['lucide-react', 'react-hot-toast'],
+          pdf: ['@react-pdf/renderer']
         }
       }
     }
   },
   server: {
     port: 3000,
-    host: true
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://backend:8080',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['@react-pdf/renderer']
+  },
+  define: {
+    global: 'globalThis'
   }
 })

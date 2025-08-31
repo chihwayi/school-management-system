@@ -48,6 +48,9 @@ public class School {
     @Column(nullable = false)
     private boolean configured = false;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
@@ -96,6 +99,9 @@ public class School {
 
     public boolean isConfigured() { return configured; }
     public void setConfigured(boolean configured) { this.configured = configured; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

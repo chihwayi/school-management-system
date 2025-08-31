@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
 
 interface SelectOption {
@@ -16,7 +16,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   containerClassName?: string;
 }
 
-const Select: React.FC<SelectProps> = ({
+const Select = forwardRef<HTMLSelectElement, SelectProps>(({
   label,
   error,
   helperText,
@@ -26,7 +26,7 @@ const Select: React.FC<SelectProps> = ({
   className,
   id,
   ...props
-}) => {
+}, ref) => {
   const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
 
   return (
@@ -42,6 +42,7 @@ const Select: React.FC<SelectProps> = ({
       
       <select
         id={selectId}
+        ref={ref}
         className={cn(
           'block w-full rounded-md border-gray-300 shadow-sm transition-colors',
           'focus:border-primary-500 focus:ring-primary-500',
@@ -81,6 +82,8 @@ const Select: React.FC<SelectProps> = ({
       )}
     </div>
   );
-};
+});
+
+Select.displayName = 'Select';
 
 export default Select;

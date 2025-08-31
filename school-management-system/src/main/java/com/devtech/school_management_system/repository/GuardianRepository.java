@@ -22,5 +22,8 @@ public interface GuardianRepository extends JpaRepository<Guardian, Long> {
 
     List<Guardian> findByWhatsappNumber(String whatsappNumber);
     
+    @Query("SELECT g FROM Guardian g JOIN FETCH g.student WHERE g.whatsappNumber = :whatsappNumber")
+    List<Guardian> findByWhatsappNumberWithStudent(@Param("whatsappNumber") String whatsappNumber);
+    
     void deleteByStudentId(Long studentId);
 }

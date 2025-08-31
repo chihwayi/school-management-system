@@ -4,8 +4,9 @@ import { reportService, type StudentReport } from '../../services/reportService'
 import { teacherService } from '../../services/teacherService';
 import { Card, Button, Select, Table, Modal, Input } from '../../components/ui';
 import ReportingGuide from '../../components/reports/ReportingGuide';
-import { MessageSquare, CheckCircle, FileText, Users } from 'lucide-react';
+import { MessageSquare, CheckCircle, FileText, Users, Download } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import PDFDownloadButton from '../../components/reports/PDFDownloadButton';
 
 const ReportsPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -31,6 +32,7 @@ const ReportsPage: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<StudentReport | null>(null);
   const [selectedSubjectReport, setSelectedSubjectReport] = useState<any>(null);
   const [comment, setComment] = useState('');
+  const [schoolSettings, setSchoolSettings] = useState<any>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -46,6 +48,15 @@ const ReportsPage: React.FC = () => {
       ]);
       setTeacherAssignments(assignments);
       setSupervisedClasses(classes);
+      
+      // Load school settings for PDF generation
+      try {
+        const response = await fetch('/api/school/config');
+        const data = await response.json();
+        setSchoolSettings(data.school);
+      } catch (error) {
+        console.warn('Could not load school settings for PDF:', error);
+      }
     } catch (error) {
       toast.error('Failed to load teacher data');
     }
@@ -308,6 +319,12 @@ const ReportsPage: React.FC = () => {
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Finalize
                         </Button>
+                      )}
+                      {report.finalized && (
+                        <PDFDownloadButton
+                          report={report}
+                          schoolSettings={schoolSettings}
+                        />
                       )}
                     </div>
                   </Table.Cell>

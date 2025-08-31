@@ -88,16 +88,17 @@ public class SubjectService {
                 .stream()
                 .map(ss -> {
                     Student student = ss.getStudent();
-                    return new StudentDTO(
-                        student.getId(),
-                        student.getFirstName(),
-                        student.getLastName(),
-                        student.getStudentId(),
-                        student.getForm(),
-                        student.getSection(),
-                        student.getLevel(),
-                        student.getAcademicYear()
-                    );
+                    StudentDTO dto = new StudentDTO();
+                    dto.setId(student.getId());
+                    dto.setFirstName(student.getFirstName());
+                    dto.setLastName(student.getLastName());
+                    dto.setStudentId(student.getStudentId());
+                    dto.setForm(student.getForm());
+                    dto.setSection(student.getSection());
+                    dto.setLevel(student.getLevel());
+                    dto.setAcademicYear(student.getAcademicYear());
+                    dto.setWhatsappNumber(student.getWhatsappNumber());
+                    return dto;
                 })
                 .collect(Collectors.toList());
     }

@@ -118,6 +118,7 @@ public class SchoolServiceImpl implements SchoolService {
         school.setAddress(dto.getAddress());
         school.setWebsite(dto.getWebsite());
         school.setConfigured(true);
+        school.setActive(true);
     }
 
     private String saveFile(MultipartFile file, String prefix) throws IOException {

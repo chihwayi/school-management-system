@@ -44,7 +44,14 @@ const TeacherDashboard: React.FC = () => {
     retry: false
   });
 
-  const isLoading = teacherLoading || assignmentsLoading;
+  // Fetch teacher student count
+  const { data: studentCount, isLoading: studentCountLoading } = useQuery({
+    queryKey: ['teacher-student-count'],
+    queryFn: teacherService.getTeacherStudentCount,
+    retry: false
+  });
+
+  const isLoading = teacherLoading || assignmentsLoading || studentCountLoading;
 
   // Calculate stats - always call useMemo to maintain hook order
   const stats = React.useMemo(() => {
@@ -53,12 +60,12 @@ const TeacherDashboard: React.FC = () => {
 
     const totalAssignments = safeAssignments.length;
     const uniqueSubjects = safeAssignments.length > 0 ?
-      new Set(safeAssignments.map((a: any) => a?.subject?.id).filter(Boolean)).size : 0;
+      new Set(safeAssignments.map((a: any) => a?.subjectId).filter(Boolean)).size : 0;
     const uniqueClasses = safeAssignments.length > 0 ?
       new Set(safeAssignments.map((a: any) => `${a.form}-${a.section}`).filter(Boolean)).size : 0;
-    const totalStudents = safeAssignments.reduce((sum: number) => {
-      return sum + 25;
-    }, 0);
+    
+    // Use the actual student count from the API
+    const totalStudents = studentCount || 0;
 
     return {
       totalAssignments,
@@ -66,7 +73,7 @@ const TeacherDashboard: React.FC = () => {
       uniqueClasses,
       totalStudents,
     };
-  }, [assignments]);
+  }, [assignments, studentCount]);
 
   if (isLoading) {
     return <LoadingSpinner />;

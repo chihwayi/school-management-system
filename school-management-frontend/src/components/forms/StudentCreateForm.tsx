@@ -159,6 +159,39 @@ const StudentCreateForm: React.FC<StudentCreateFormProps> = ({
                 {...registerStudent('academicYear', { required: 'Academic year is required' })}
                 error={studentErrors.academicYear?.message}
               />
+              
+              <Input
+                label="Enrollment Date"
+                type="date"
+                {...registerStudent('enrollmentDate', { required: 'Enrollment date is required' })}
+                error={studentErrors.enrollmentDate?.message}
+                defaultValue={new Date().toISOString().split('T')[0]}
+              />
+              
+              <Input
+                label="WhatsApp Number"
+                {...registerStudent('whatsappNumber')}
+                placeholder="e.g., +263 77 123 4567"
+              />
+              
+              <Input
+                label="Date of Birth"
+                type="date"
+                {...registerStudent('dateOfBirth')}
+                placeholder="Select date of birth"
+              />
+              
+              <Select
+                label="Gender"
+                {...registerStudent('gender')}
+                options={[
+                  { value: '', label: 'Select gender' },
+                  { value: 'MALE', label: 'Male' },
+                  { value: 'FEMALE', label: 'Female' },
+                  { value: 'OTHER', label: 'Other' }
+                ]}
+                placeholder="Select gender"
+              />
             </div>
           </div>
         </Card>

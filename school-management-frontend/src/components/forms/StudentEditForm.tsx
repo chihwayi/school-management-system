@@ -39,7 +39,11 @@ const StudentEditForm: React.FC<StudentEditFormProps> = ({
       studentId: student.studentId,
       form: student.form,
       section: student.section,
-      level: student.level
+      level: student.level,
+      enrollmentDate: student.enrollmentDate,
+      whatsappNumber: student.whatsappNumber,
+      dateOfBirth: student.dateOfBirth,
+      gender: student.gender
     }
   });
 
@@ -100,6 +104,38 @@ const StudentEditForm: React.FC<StudentEditFormProps> = ({
               {...register('section', { required: 'Section is required' })}
               error={errors.section?.message}
               options={(sections || []).map(section => ({ value: section.name, label: section.name }))}
+            />
+            
+            <Input
+              label="Enrollment Date"
+              type="date"
+              {...register('enrollmentDate', { required: 'Enrollment date is required' })}
+              error={errors.enrollmentDate?.message}
+            />
+            
+            <Input
+              label="WhatsApp Number"
+              {...register('whatsappNumber')}
+              placeholder="e.g., +263 77 123 4567"
+            />
+            
+            <Input
+              label="Date of Birth"
+              type="date"
+              {...register('dateOfBirth')}
+              placeholder="Select date of birth"
+            />
+            
+            <Select
+              label="Gender"
+              {...register('gender')}
+              options={[
+                { value: '', label: 'Select gender' },
+                { value: 'MALE', label: 'Male' },
+                { value: 'FEMALE', label: 'Female' },
+                { value: 'OTHER', label: 'Other' }
+              ]}
+              placeholder="Select gender"
             />
           </div>
         </div>

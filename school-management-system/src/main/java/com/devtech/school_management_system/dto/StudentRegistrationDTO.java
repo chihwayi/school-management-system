@@ -10,6 +10,10 @@ public class StudentRegistrationDTO {
     private String section;
     private String level;
     private String academicYear;
+    private String enrollmentDate;
+    private String whatsappNumber;
+    private String dateOfBirth;
+    private String gender;
     private List<Long> subjectIds; // Optional: list of subjects to assign
     private List<GuardianDTO> guardians; // Guardian information
 
@@ -32,6 +36,38 @@ public class StudentRegistrationDTO {
 
     public void setAcademicYear(String academicYear) {
         this.academicYear = academicYear;
+    }
+
+    public String getEnrollmentDate() {
+        return enrollmentDate;
+    }
+
+    public void setEnrollmentDate(String enrollmentDate) {
+        this.enrollmentDate = enrollmentDate;
+    }
+
+    public String getWhatsappNumber() {
+        return whatsappNumber;
+    }
+
+    public void setWhatsappNumber(String whatsappNumber) {
+        this.whatsappNumber = whatsappNumber;
+    }
+
+    public String getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
     }
 
     public String getFirstName() {

@@ -9,11 +9,15 @@ public class StudentDTO {
     private String section;
     private String level;
     private String academicYear;
+    private String whatsappNumber;
+    private String dateOfBirth;
+    private String gender;
 
     public StudentDTO() {}
 
     public StudentDTO(Long id, String firstName, String lastName, String studentId, 
-                     String form, String section, String level, String academicYear) {
+                     String form, String section, String level, String academicYear, String whatsappNumber,
+                     String dateOfBirth, String gender) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -22,6 +26,9 @@ public class StudentDTO {
         this.section = section;
         this.level = level;
         this.academicYear = academicYear;
+        this.whatsappNumber = whatsappNumber;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
     }
 
     // Getters and Setters
@@ -48,6 +55,15 @@ public class StudentDTO {
 
     public String getAcademicYear() { return academicYear; }
     public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
+
+    public String getWhatsappNumber() { return whatsappNumber; }
+    public void setWhatsappNumber(String whatsappNumber) { this.whatsappNumber = whatsappNumber; }
+
+    public String getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
     public String getFullName() {
         return firstName + " " + lastName;

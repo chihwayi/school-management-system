@@ -211,32 +211,34 @@ const TeachersPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Employee ID</Table.HeaderCell>
-                  <Table.HeaderCell>First Name</Table.HeaderCell>
-                  <Table.HeaderCell>Last Name</Table.HeaderCell>
-                  <Table.HeaderCell>Email</Table.HeaderCell>
-                  <Table.HeaderCell>Roles</Table.HeaderCell>
-                  <Table.HeaderCell>Actions</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {tableData.length > 0 ? (
-                  tableData.map((teacher, index) => (
-                    <Table.Row key={index}>
-                      <Table.Cell>{teacher.employeeId}</Table.Cell>
-                      <Table.Cell>{teacher.firstName}</Table.Cell>
-                      <Table.Cell>{teacher.lastName}</Table.Cell>
-                      <Table.Cell>{teacher.email}</Table.Cell>
-                      <Table.Cell>{teacher.roles}</Table.Cell>
-                      <Table.Cell>{teacher.actions}</Table.Cell>
-                    </Table.Row>
-                  ))
-                ) : null}
-              </Table.Body>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>Employee ID</Table.HeaderCell>
+                    <Table.HeaderCell>First Name</Table.HeaderCell>
+                    <Table.HeaderCell>Last Name</Table.HeaderCell>
+                    <Table.HeaderCell>Email</Table.HeaderCell>
+                    <Table.HeaderCell>Roles</Table.HeaderCell>
+                    <Table.HeaderCell>Actions</Table.HeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {tableData.length > 0 ? (
+                    tableData.map((teacher, index) => (
+                      <Table.Row key={index}>
+                        <Table.Cell>{teacher.employeeId}</Table.Cell>
+                        <Table.Cell>{teacher.firstName}</Table.Cell>
+                        <Table.Cell>{teacher.lastName}</Table.Cell>
+                        <Table.Cell>{teacher.email}</Table.Cell>
+                        <Table.Cell>{teacher.roles}</Table.Cell>
+                        <Table.Cell>{teacher.actions}</Table.Cell>
+                      </Table.Row>
+                    ))
+                  ) : null}
+                </Table.Body>
+              </Table>
+            </div>
             {tableData.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No teachers found

@@ -160,7 +160,14 @@ export const ROUTES = {
   SECTIONS: '/app/sections',
   USERS: '/app/users',
   PROFILE: '/app/profile',
-  SETTINGS: '/app/settings'
+  SETTINGS: '/app/settings',
+  AI_DASHBOARD: '/app/ai',
+  AI_RESOURCES: '/app/ai/resources',
+  AI_GENERATE: '/app/ai/generate',
+  AI_CONTENT: '/app/ai/content',
+  AI_ANALYTICS: '/app/ai/analytics',
+  AI_TEMPLATES: '/app/ai/templates',
+  AI_STUDENT_CONTENT: '/app/ai/student-content'
 } as const;
 
 // API Endpoints

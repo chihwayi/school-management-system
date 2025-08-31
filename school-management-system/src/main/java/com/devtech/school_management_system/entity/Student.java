@@ -41,6 +41,15 @@ public class Student {
     @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
 
+    @Column(name = "whatsapp_number")
+    private String whatsappNumber;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column
+    private String gender; // MALE, FEMALE, OTHER
+
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<StudentSubject> studentSubjects = new HashSet<>();
@@ -93,6 +102,15 @@ public class Student {
 
     public LocalDate getEnrollmentDate() { return enrollmentDate; }
     public void setEnrollmentDate(LocalDate enrollmentDate) { this.enrollmentDate = enrollmentDate; }
+
+    public String getWhatsappNumber() { return whatsappNumber; }
+    public void setWhatsappNumber(String whatsappNumber) { this.whatsappNumber = whatsappNumber; }
+
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
     public Set<StudentSubject> getStudentSubjects() { return studentSubjects; }
     public void setStudentSubjects(Set<StudentSubject> studentSubjects) { this.studentSubjects = studentSubjects; }

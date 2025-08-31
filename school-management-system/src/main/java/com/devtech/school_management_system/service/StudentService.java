@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -60,8 +61,9 @@ public class StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
     }
 
-    public Student createStudent(String firstName, String lastName, String studentId,
-                                 String form, String section, String level, String academicYear) {
+        public Student createStudent(String firstName, String lastName, String studentId, 
+                                String form, String section, String level, String academicYear, String enrollmentDate,
+                                String whatsappNumber, String dateOfBirth, String gender) {
         Student student = new Student();
         student.setFirstName(firstName);
         student.setLastName(lastName);
@@ -80,6 +82,33 @@ public class StudentService {
         }
         student.setAcademicYear(academicYear);
         
+        // Set enrollment date if provided
+        if (enrollmentDate != null && !enrollmentDate.trim().isEmpty()) {
+            try {
+                student.setEnrollmentDate(LocalDate.parse(enrollmentDate));
+            } catch (Exception e) {
+                // Log error but don't fail the creation
+                System.err.println("Invalid date format for enrollmentDate: " + enrollmentDate);
+            }
+        }
+        
+        student.setWhatsappNumber(whatsappNumber);
+        
+        // Set date of birth if provided
+        if (dateOfBirth != null && !dateOfBirth.trim().isEmpty()) {
+            try {
+                student.setDateOfBirth(LocalDate.parse(dateOfBirth));
+            } catch (Exception e) {
+                // Log error but don't fail the creation
+                System.err.println("Invalid date format for dateOfBirth: " + dateOfBirth);
+            }
+        }
+        
+        // Set gender if provided
+        if (gender != null && !gender.trim().isEmpty()) {
+            student.setGender(gender);
+        }
+        
         student.setCreatedAt(LocalDateTime.now());
         student.setUpdatedAt(LocalDateTime.now());
 
@@ -95,7 +124,11 @@ public class StudentService {
                 registrationDTO.getForm(),
                 registrationDTO.getSection(),
                 registrationDTO.getLevel(),
-                registrationDTO.getAcademicYear()
+                registrationDTO.getAcademicYear(),
+                registrationDTO.getEnrollmentDate(),
+                registrationDTO.getWhatsappNumber(),
+                registrationDTO.getDateOfBirth(),
+                registrationDTO.getGender()
         );
 
         // Create guardians if provided
@@ -135,6 +168,28 @@ public class StudentService {
         }
         if (updateDTO.getLevel() != null) {
             student.setLevel(updateDTO.getLevel());
+        }
+        if (updateDTO.getEnrollmentDate() != null && !updateDTO.getEnrollmentDate().trim().isEmpty()) {
+            try {
+                student.setEnrollmentDate(LocalDate.parse(updateDTO.getEnrollmentDate()));
+            } catch (Exception e) {
+                // Log error but don't fail the update
+                System.err.println("Invalid date format for enrollmentDate: " + updateDTO.getEnrollmentDate());
+            }
+        }
+        if (updateDTO.getWhatsappNumber() != null) {
+            student.setWhatsappNumber(updateDTO.getWhatsappNumber());
+        }
+        if (updateDTO.getDateOfBirth() != null && !updateDTO.getDateOfBirth().trim().isEmpty()) {
+            try {
+                student.setDateOfBirth(LocalDate.parse(updateDTO.getDateOfBirth()));
+            } catch (Exception e) {
+                // Log error but don't fail the update
+                System.err.println("Invalid date format for dateOfBirth: " + updateDTO.getDateOfBirth());
+            }
+        }
+        if (updateDTO.getGender() != null && !updateDTO.getGender().trim().isEmpty()) {
+            student.setGender(updateDTO.getGender());
         }
 
         student.setUpdatedAt(LocalDateTime.now());

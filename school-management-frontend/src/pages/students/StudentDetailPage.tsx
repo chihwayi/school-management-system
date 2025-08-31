@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { studentService } from '../../services/studentService';
 import { guardianService } from '../../services/guardianService';
-import { reportService } from '../../services/reportService';
-import type { Student, Guardian, Report } from '../../types';
+import type { Student, Guardian } from '../../types';
 import { Card, Button, Badge, Table, Modal } from '../../components/ui';
 import { GuardianForm } from '../../components/forms';
 import { ArrowLeft, Edit, Plus, Phone } from 'lucide-react';
@@ -15,34 +14,31 @@ const StudentDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);
   const [guardians, setGuardians] = useState<Guardian[]>([]);
-  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      loadStudentDetails(parseInt(id));
-    }
-  }, [id]);
-
-  const loadStudentDetails = async (studentId: number) => {
+  const loadStudentDetails = useCallback(async (studentId: number) => {
     try {
       setLoading(true);
-      const [studentData, guardiansData, reportsData] = await Promise.all([
+      const [studentData, guardiansData] = await Promise.all([
         studentService.getStudentById(studentId),
-        guardianService.getGuardiansByStudent(studentId),
-        reportService.getStudentReports(studentId)
+        guardianService.getGuardiansByStudent(studentId)
       ]);
       
       setStudent(studentData);
       setGuardians(guardiansData);
-      setReports(reportsData);
     } catch (error) {
       toast.error('Failed to load student details');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (id) {
+      loadStudentDetails(parseInt(id));
+    }
+  }, [id, loadStudentDetails]);
 
   if (loading) {
     return <div className="p-6">Loading...</div>;
@@ -54,24 +50,7 @@ const StudentDetailPage: React.FC = () => {
 
 
 
-  const reportsData = reports.map(report => ({
-    term: report.term,
-    academicYear: report.academicYear,
-    finalized: (
-      <Badge variant={report.finalized ? 'success' : 'warning'}>
-        {report.finalized ? 'Finalized' : 'In Progress'}
-      </Badge>
-    ),
-    actions: (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate(`/app/reports/${report.id}`)}
-      >
-        View Report
-      </Button>
-    )
-  }));
+
 
   return (
     <div className="p-6">
@@ -121,48 +100,49 @@ const StudentDetailPage: React.FC = () => {
                   <p className="font-medium">{student.section}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-gray-600">Gender</p>
+                  <p className="font-medium">{student.gender || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Date of Birth</p>
+                  <p className="font-medium">
+                    {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Age</p>
+                  <p className="font-medium">
+                    {student.dateOfBirth ? 
+                      (() => {
+                        const birthDate = new Date(student.dateOfBirth);
+                        const today = new Date();
+                        const age = today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff = today.getMonth() - birthDate.getMonth();
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                          return (age - 1) + ' years';
+                        }
+                        return age + ' years';
+                      })()
+                      : 'Not specified'}
+                  </p>
+                </div>
+                <div>
                   <p className="text-sm text-gray-600">Enrollment Date</p>
                   <p className="font-medium">
                     {new Date(student.enrollmentDate).toLocaleDateString()}
                   </p>
                 </div>
+                {student.whatsappNumber && (
+                  <div>
+                    <p className="text-sm text-gray-600">WhatsApp Number</p>
+                    <p className="font-medium">{student.whatsappNumber}</p>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
 
-          {/* Reports */}
-          <Card className="mt-6">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Academic Reports</h3>
-              <Table>
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell>Term</Table.HeaderCell>
-                    <Table.HeaderCell>Year</Table.HeaderCell>
-                    <Table.HeaderCell>Status</Table.HeaderCell>
-                    <Table.HeaderCell>Actions</Table.HeaderCell>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {reportsData.length > 0 ? (
-                    reportsData.map((report, index) => (
-                      <Table.Row key={index}>
-                        <Table.Cell>{report.term}</Table.Cell>
-                        <Table.Cell>{report.academicYear}</Table.Cell>
-                        <Table.Cell>{report.finalized}</Table.Cell>
-                        <Table.Cell>{report.actions}</Table.Cell>
-                      </Table.Row>
-                    ))
-                  ) : null}
-                </Table.Body>
-              </Table>
-              {reportsData.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No reports found
-                </div>
-              )}
-            </div>
-          </Card>
+
         </div>
 
         {/* Guardians */}

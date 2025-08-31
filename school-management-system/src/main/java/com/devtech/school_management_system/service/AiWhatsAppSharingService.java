@@ -1,0 +1,185 @@
+package com.devtech.school_management_system.service;
+
+import com.devtech.school_management_system.entity.AiGeneratedContent;
+import com.devtech.school_management_system.entity.Student;
+import com.devtech.school_management_system.entity.Teacher;
+import com.devtech.school_management_system.repository.StudentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class AiWhatsAppSharingService {
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private WhatsAppService whatsAppService;
+
+    /**
+     * Share AI-generated content to all students in a specific class
+     */
+    public void shareContentToClass(AiGeneratedContent content, Teacher teacher, String form, String section) {
+        // Get all active students in the specified class
+        List<Student> students = studentRepository.findByFormAndSectionAndAcademicYear(
+            form, section, content.getAcademicYear()
+        );
+
+        // Filter students who have WhatsApp numbers
+        List<Student> studentsWithWhatsApp = students.stream()
+            .filter(student -> student.getWhatsappNumber() != null && !student.getWhatsappNumber().trim().isEmpty())
+            .collect(Collectors.toList());
+
+        // Create the message content
+        String message = createContentMessage(content, teacher);
+
+        // Send to each student
+        for (Student student : studentsWithWhatsApp) {
+            try {
+                whatsAppService.sendMessage(student.getWhatsappNumber(), message);
+            } catch (Exception e) {
+                // Log error but continue with other students
+                System.err.println("Failed to send WhatsApp message to student " + student.getStudentId() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Share AI-generated content to all students in multiple classes
+     */
+    public void shareContentToMultipleClasses(AiGeneratedContent content, Teacher teacher, List<String> classList) {
+        for (String className : classList) {
+            String[] parts = className.split(" ");
+            if (parts.length >= 2) {
+                String form = parts[0];
+                String section = parts[1];
+                shareContentToClass(content, teacher, form, section);
+            }
+        }
+    }
+
+    /**
+     * Share AI-generated content to specific students
+     */
+    public void shareContentToSpecificStudents(AiGeneratedContent content, Teacher teacher, List<Long> studentIds) {
+        List<Student> students = studentRepository.findAllById(studentIds);
+        
+        List<Student> studentsWithWhatsApp = students.stream()
+            .filter(student -> student.getWhatsappNumber() != null && !student.getWhatsappNumber().trim().isEmpty())
+            .collect(Collectors.toList());
+
+        String message = createContentMessage(content, teacher);
+
+        for (Student student : studentsWithWhatsApp) {
+            try {
+                whatsAppService.sendMessage(student.getWhatsappNumber(), message);
+            } catch (Exception e) {
+                System.err.println("Failed to send WhatsApp message to student " + student.getStudentId() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Create a formatted message for sharing AI content
+     */
+    private String createContentMessage(AiGeneratedContent content, Teacher teacher) {
+        StringBuilder message = new StringBuilder();
+        
+        message.append("📚 *New Educational Content*\n\n");
+        message.append("*Subject:* ").append(content.getSubject().getName()).append("\n");
+        message.append("*Type:* ").append(formatContentType(content.getType())).append("\n");
+        message.append("*Title:* ").append(content.getTitle()).append("\n");
+        
+        if (content.getDifficultyLevel() != null) {
+            message.append("*Difficulty:* ").append(content.getDifficultyLevel()).append("\n");
+        }
+        
+        if (content.getFormLevel() != null) {
+            message.append("*Form Level:* ").append(content.getFormLevel()).append("\n");
+        }
+        
+        if (content.getEstimatedDuration() != null) {
+            message.append("*Duration:* ").append(content.getEstimatedDuration()).append(" minutes\n");
+        }
+        
+        if (content.getTotalMarks() != null) {
+            message.append("*Total Marks:* ").append(content.getTotalMarks()).append("\n");
+        }
+        
+        message.append("\n*Content:*\n");
+        message.append(content.getContentData());
+        
+        if (content.getMarkingScheme() != null && !content.getMarkingScheme().trim().isEmpty()) {
+            message.append("\n\n*Marking Scheme:*\n");
+            message.append(content.getMarkingScheme());
+        }
+        
+        message.append("\n\n*Generated by:* ").append(teacher.getFirstName()).append(" ").append(teacher.getLastName());
+        message.append("\n*Date:* ").append(content.getCreatedAt().toLocalDate());
+        
+        return message.toString();
+    }
+
+    /**
+     * Format content type for display
+     */
+    private String formatContentType(AiGeneratedContent.ContentType type) {
+        switch (type) {
+            case STUDY_NOTES: return "Study Notes";
+            case PRACTICE_QUESTIONS: return "Practice Questions";
+            case QUIZ: return "Quiz";
+            case MIDTERM_EXAM: return "Midterm Exam";
+            case FINAL_EXAM: return "Final Exam";
+            case ASSIGNMENT: return "Assignment";
+            case REVISION_MATERIAL: return "Revision Material";
+            default: return type.toString();
+        }
+    }
+
+    /**
+     * Get students with WhatsApp numbers for a specific class
+     */
+    public List<Student> getStudentsWithWhatsApp(String form, String section, String academicYear) {
+        List<Student> students = studentRepository.findByFormAndSectionAndAcademicYear(form, section, academicYear);
+        return students.stream()
+            .filter(student -> student.getWhatsappNumber() != null && !student.getWhatsappNumber().trim().isEmpty())
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Get WhatsApp statistics for a class
+     */
+    public WhatsAppStats getWhatsAppStats(String form, String section, String academicYear) {
+        List<Student> allStudents = studentRepository.findByFormAndSectionAndAcademicYear(form, section, academicYear);
+        List<Student> studentsWithWhatsApp = getStudentsWithWhatsApp(form, section, academicYear);
+        
+        return new WhatsAppStats(
+            allStudents.size(),
+            studentsWithWhatsApp.size(),
+            (double) studentsWithWhatsApp.size() / allStudents.size() * 100
+        );
+    }
+
+    /**
+     * WhatsApp statistics for a class
+     */
+    public static class WhatsAppStats {
+        private int totalStudents;
+        private int studentsWithWhatsApp;
+        private double coveragePercentage;
+
+        public WhatsAppStats(int totalStudents, int studentsWithWhatsApp, double coveragePercentage) {
+            this.totalStudents = totalStudents;
+            this.studentsWithWhatsApp = studentsWithWhatsApp;
+            this.coveragePercentage = coveragePercentage;
+        }
+
+        // Getters
+        public int getTotalStudents() { return totalStudents; }
+        public int getStudentsWithWhatsApp() { return studentsWithWhatsApp; }
+        public double getCoveragePercentage() { return coveragePercentage; }
+    }
+}

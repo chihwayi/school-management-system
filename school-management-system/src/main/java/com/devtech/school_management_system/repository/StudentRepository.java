@@ -31,5 +31,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     @Query("SELECT s FROM Student s WHERE s.firstName LIKE %:name% OR s.lastName LIKE %:name%")
     List<Student> findByNameContaining(@Param("name") String name);
+    
+    Optional<Student> findByWhatsappNumber(String whatsappNumber);
 }
 

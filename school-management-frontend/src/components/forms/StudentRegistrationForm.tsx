@@ -201,6 +201,31 @@ const StudentRegistrationForm: React.FC<StudentRegistrationFormProps> = ({
               error={errors.academicYear?.message}
               placeholder="e.g., 2025"
             />
+            
+            <Input
+              label="WhatsApp Number"
+              {...register('whatsappNumber')}
+              placeholder="e.g., +263 77 123 4567"
+            />
+            
+            <Input
+              label="Date of Birth"
+              type="date"
+              {...register('dateOfBirth')}
+              placeholder="Select date of birth"
+            />
+            
+            <Select
+              label="Gender"
+              {...register('gender')}
+              options={[
+                { value: '', label: 'Select gender' },
+                { value: 'MALE', label: 'Male' },
+                { value: 'FEMALE', label: 'Female' },
+                { value: 'OTHER', label: 'Other' }
+              ]}
+              placeholder="Select gender"
+            />
           </div>
         </div>
       </Card>

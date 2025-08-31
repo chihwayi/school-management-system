@@ -5,6 +5,7 @@ import com.devtech.school_management_system.entity.Student;
 import com.devtech.school_management_system.exception.ResourceNotFoundException;
 import com.devtech.school_management_system.repository.GuardianRepository;
 import com.devtech.school_management_system.repository.StudentRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,7 +102,6 @@ public class GuardianService {
     public List<Guardian> getGuardiansByPhoneNumber(String phoneNumber) {
         return guardianRepository.findByPhoneNumber(phoneNumber);
     }
-
     public List<Guardian> getGuardiansByWhatsappNumber(String whatsappNumber) {
         return guardianRepository.findByWhatsappNumber(whatsappNumber);
     }

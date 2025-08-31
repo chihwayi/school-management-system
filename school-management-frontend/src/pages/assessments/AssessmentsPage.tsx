@@ -143,18 +143,52 @@ const AssessmentsPage: React.FC = () => {
 
   const getUniqueClasses = () => {
     const classes = new Set<string>();
+    
+    // Add classes from existing assessments
     assessments.forEach(assessment => {
       classes.add(`${assessment.studentForm} ${assessment.studentSection}`);
     });
+    
+    // Add classes from teacher assignments (so dropdowns show options even if no assessments exist)
+    teacherAssignments.forEach(assignment => {
+      if (assignment.form && assignment.section) {
+        classes.add(`${assignment.form} ${assignment.section}`);
+      }
+    });
+    
     return Array.from(classes).sort();
   };
 
   const getUniqueTerms = () => {
     const terms = new Set<string>();
+    
+    // Add terms from existing assessments
     assessments.forEach(assessment => {
       terms.add(assessment.term);
     });
+    
+    // Add standard terms (so dropdowns show options even if no assessments exist)
+    terms.add('Term 1');
+    terms.add('Term 2');
+    terms.add('Term 3');
+    
     return Array.from(terms).sort();
+  };
+
+  const getUniqueYears = () => {
+    const years = new Set<string>();
+    
+    // Add years from existing assessments
+    assessments.forEach(assessment => {
+      years.add(assessment.academicYear);
+    });
+    
+    // Add current and next year (so dropdowns show options even if no assessments exist)
+    const currentYear = new Date().getFullYear();
+    years.add(currentYear.toString());
+    years.add((currentYear + 1).toString());
+    
+    return Array.from(years).sort();
   };
 
   const getScoreColor = (score: number, maxScore: number) => {

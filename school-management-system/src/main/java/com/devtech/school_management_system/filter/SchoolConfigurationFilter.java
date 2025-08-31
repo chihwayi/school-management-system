@@ -60,9 +60,10 @@ public class SchoolConfigurationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Redirect to setup endpoint for all other requests
-            response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
-            response.setHeader("Location", "/setup");
+            // Return error for non-setup endpoints when school is not configured
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"message\":\"School setup is required\",\"setupRequired\":true}");
+            response.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
             return;
         }
 
@@ -84,7 +85,6 @@ public class SchoolConfigurationFilter extends OncePerRequestFilter {
                 path.startsWith("/js/") ||
                 path.startsWith("/api/uploads/") ||
                 path.equals("/favicon.ico") ||
-                path.equals("/") ||
-                path.startsWith("/setup");
+                path.equals("/");
     }
 }

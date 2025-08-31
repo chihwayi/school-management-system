@@ -24,18 +24,26 @@ services:
       - ~/.m2:/root/.m2
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/school_management_system?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
     ports:
       - "8080:8080"
       - "5005:5005"  # Debug port
+    depends_on:
+      - mysql
 
   # MySQL with persistent data
   mysql:
+    image: mysql:8.0
     ports:
       - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=school_management_system
     volumes:
       - mysql_dev_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
 
 volumes:
   mysql_dev_data:

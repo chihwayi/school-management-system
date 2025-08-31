@@ -40,12 +40,50 @@ interface SupervisedClass {
 export const teacherService = {
   getAllTeachers: async (): Promise<Teacher[]> => {
     const response = await api.get('/teachers?includeUser=true');
-    return response.data;
+    console.log('Teacher API response:', response.data);
+
+    // Transform the nested response structure to match frontend expectations
+    const transformedData = response.data.map((teacher: any) => ({
+      id: teacher.id,
+      firstName: teacher.firstName,
+      lastName: teacher.lastName,
+      employeeId: teacher.employeeId,
+      user: {
+        id: teacher.user?.id,
+        username: teacher.user?.username,
+        email: teacher.user?.email,
+        enabled: teacher.user?.enabled,
+        roles: teacher.user?.roles || [],
+        createdAt: teacher.user?.createdAt,
+        updatedAt: teacher.user?.updatedAt
+      }
+    }));
+
+    console.log('Transformed teacher data:', transformedData);
+    return transformedData;
   },
 
   getTeacherById: async (id: number): Promise<Teacher> => {
     const response = await api.get(`/teachers/${id}`);
-    return response.data;
+    console.log('Single teacher API response:', response.data);
+
+    // Transform single teacher response
+    const teacher = response.data;
+    return {
+      id: teacher.id,
+      firstName: teacher.firstName,
+      lastName: teacher.lastName,
+      employeeId: teacher.employeeId,
+      user: {
+        id: teacher.user?.id,
+        username: teacher.user?.username,
+        email: teacher.user?.email,
+        enabled: teacher.user?.enabled,
+        roles: teacher.user?.roles || [],
+        createdAt: teacher.user?.createdAt,
+        updatedAt: teacher.user?.updatedAt
+      }
+    };
   },
 
   createTeacher: async (teacherData: TeacherData): Promise<Teacher> => {
@@ -103,5 +141,39 @@ export const teacherService = {
   getSupervisedClasses: async (): Promise<SupervisedClass[]> => {
     const response = await api.get('/teachers/supervised-classes');
     return response.data;
+  },
+
+  getTeacherStudentCount: async (): Promise<number> => {
+    try {
+      // Get teacher assignments first
+      const assignments = await teacherService.getAssignedSubjectsAndClasses();
+      
+      if (!assignments || assignments.length === 0) {
+        return 0;
+      }
+
+      // Get unique class combinations
+      const uniqueClasses = new Set(assignments.map(a => `${a.form}-${a.section}`));
+      
+      // For each unique class, get the student count
+      const studentCounts = await Promise.all(
+        Array.from(uniqueClasses).map(async (classKey) => {
+          const [form, section] = classKey.split('-');
+          try {
+            const response = await api.get(`/students/form/${form}/section/${section}`);
+            return response.data.length;
+          } catch (error) {
+            console.error(`Error getting students for class ${classKey}:`, error);
+            return 0;
+          }
+        })
+      );
+
+      // Sum up all student counts
+      return studentCounts.reduce((sum, count) => sum + count, 0);
+    } catch (error) {
+      console.error('Error getting teacher student count:', error);
+      return 0;
+    }
   }
 };

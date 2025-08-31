@@ -38,6 +38,19 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public String generateStudentParentToken(String mobileNumber, String userType, Long referenceId) {
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtConfig.getExpiration() * 1000L);
+
+        return Jwts.builder()
+                .subject(mobileNumber)
+                .claim("userType", userType)
+                .claim("referenceId", referenceId)
+                .issuedAt(new Date())
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
     public String getUsernameFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())

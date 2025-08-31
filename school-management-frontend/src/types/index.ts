@@ -92,6 +92,9 @@ export interface Student {
   section: string;
   level: string;
   enrollmentDate: string;
+  whatsappNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
   guardians?: Guardian[];
   subjects?: Subject[];
   classGroup?: ClassGroup;
@@ -106,6 +109,10 @@ export interface StudentRegistrationDTO {
   section: string;
   level: string;
   academicYear: string;
+  enrollmentDate: string;
+  whatsappNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
   subjectIds?: number[];
 }
 
@@ -115,6 +122,10 @@ export interface StudentUpdateDTO {
   form: string;
   section: string;
   level: string;
+  enrollmentDate?: string;
+  whatsappNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
 }
 
 export interface StudentWithGuardiansDTO {
@@ -457,3 +468,5 @@ export * from './feePayment';
 
 // Section Types
 export * from './section';
+
+// AI Types are imported directly from './ai' where needed
