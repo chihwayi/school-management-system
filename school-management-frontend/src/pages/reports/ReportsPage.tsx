@@ -4,17 +4,40 @@ import { reportService, type StudentReport } from '../../services/reportService'
 import { teacherService } from '../../services/teacherService';
 import { Card, Button, Select, Table, Modal, Input } from '../../components/ui';
 import ReportingGuide from '../../components/reports/ReportingGuide';
-import { MessageSquare, CheckCircle, FileText, Users, Download } from 'lucide-react';
+import { MessageSquare, CheckCircle, FileText, Users, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import PDFDownloadButton from '../../components/reports/PDFDownloadButton';
 
 const ReportsPage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { isClassTeacher, canAddSubjectComments, canAddOverallComments } = useRoleCheck();
+  
+  
   
   // Helper function to check if teacher can comment on a specific subject
   const canCommentOnSubject = (subjectId: number) => {
     return teacherAssignments.some(assignment => assignment.subjectId === subjectId);
+  };
+
+  // Helper function to check if all subjects have comments
+  const getAllSubjectsWithoutComments = (report: StudentReport) => {
+    if (!report.subjectReports || report.subjectReports.length === 0) {
+      return [];
+    }
+    
+    return report.subjectReports.filter(subjectReport => !subjectReport.comment);
+  };
+
+  // Helper function to get subjects without comments for warning
+  const getSubjectsWithoutCommentsWarning = (report: StudentReport) => {
+    const subjectsWithoutComments = getAllSubjectsWithoutComments(report);
+    
+    if (subjectsWithoutComments.length === 0) {
+      return null;
+    }
+    
+    const subjectNames = subjectsWithoutComments.map(sr => sr.subjectName).join(', ');
+    return `Warning: The following subjects don't have comments yet: ${subjectNames}. You can still proceed, but it's recommended to have all subject comments before finalizing.`;
   };
   
   const [reports, setReports] = useState<StudentReport[]>([]);
@@ -33,6 +56,8 @@ const ReportsPage: React.FC = () => {
   const [selectedSubjectReport, setSelectedSubjectReport] = useState<any>(null);
   const [comment, setComment] = useState('');
   const [schoolSettings, setSchoolSettings] = useState<any>(null);
+  const [isViewCommentModalOpen, setIsViewCommentModalOpen] = useState(false);
+  const [fullComment, setFullComment] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -76,19 +101,34 @@ const ReportsPage: React.FC = () => {
       } else if (selectedSubject) {
         // Load subject reports for regular teacher
         const assignment = teacherAssignments.find(a => a.id.toString() === selectedSubject);
+        console.log('Selected subject ID:', selectedSubject);
+        console.log('Found assignment:', assignment);
+        console.log('All teacher assignments:', teacherAssignments);
+        
         if (assignment) {
+          // Handle both possible structures: subject.id or subjectId
+          const subjectId = assignment.subject?.id || assignment.subjectId;
+          console.log('Using subject ID:', subjectId);
+          
           reportsData = await reportService.getSubjectReports(
-            assignment.subjectId, 
+            subjectId, 
             assignment.form, 
             assignment.section, 
             selectedTerm, 
             selectedYear
           );
+          console.log('Reports data received:', reportsData);
+          console.log('First report details:', reportsData[0]);
+          if (reportsData[0] && reportsData[0].subjectReports) {
+            console.log('First report subject reports:', reportsData[0].subjectReports);
+          }
         }
       }
 
       setReports(reportsData);
+      console.log('Reports set in state:', reportsData);
     } catch (error) {
+      console.error('Error loading reports:', error);
       toast.error('Failed to load reports');
     } finally {
       setLoading(false);
@@ -103,6 +143,14 @@ const ReportsPage: React.FC = () => {
   };
 
   const handleOverallComment = (report: StudentReport) => {
+    const warningMessage = getSubjectsWithoutCommentsWarning(report);
+    
+    if (warningMessage) {
+      if (!window.confirm(`${warningMessage}\n\nDo you want to proceed with adding the overall comment?`)) {
+        return;
+      }
+    }
+    
     setSelectedReport(report);
     setComment(report.overallComment || '');
     setIsOverallModalOpen(true);
@@ -141,9 +189,22 @@ const ReportsPage: React.FC = () => {
     }
   };
 
-  const finalizeReport = async (reportId: number) => {
-    if (!window.confirm('Are you sure you want to finalize this report? This action cannot be undone.')) return;
+  const handleFinalizeReport = (report: StudentReport) => {
+    const subjectsWithoutComments = getAllSubjectsWithoutComments(report);
+    const warningMessage = getSubjectsWithoutCommentsWarning(report);
+    
+    let confirmMessage = 'Are you sure you want to finalize this report? This action cannot be undone.';
+    
+    if (warningMessage) {
+      confirmMessage = `${warningMessage}\n\n${confirmMessage}`;
+    }
+    
+    if (!window.confirm(confirmMessage)) return;
+    
+    finalizeReport(report.id);
+  };
 
+  const finalizeReport = async (reportId: number) => {
     try {
       await reportService.finalizeReport(reportId);
       toast.success('Report finalized');
@@ -169,9 +230,12 @@ const ReportsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {isClassTeacher() && supervisedClasses.length > 0 && (
             <Select
-              label="Supervised Class"
+              label="Supervised Class (Class Teachers - Shows ALL subjects)"
               value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
+              onChange={(e) => {
+                setSelectedClass(e.target.value);
+                setSelectedSubject(''); // Clear teaching subject when class is selected
+              }}
               options={[
                 { value: '', label: 'Select Supervised Class' },
                 ...supervisedClasses.map(cls => ({
@@ -184,9 +248,12 @@ const ReportsPage: React.FC = () => {
           
           {teacherAssignments.length > 0 && (
             <Select
-              label="Teaching Subject"
+              label="Teaching Subject (Regular Teachers - Shows only your subjects)"
               value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
+              onChange={(e) => {
+                setSelectedSubject(e.target.value);
+                setSelectedClass(''); // Clear supervised class when subject is selected
+              }}
               options={[
                 { value: '', label: 'Select Teaching Subject' },
                 ...teacherAssignments.map(assignment => ({
@@ -220,23 +287,35 @@ const ReportsPage: React.FC = () => {
         </div>
         
         <div className="mt-4">
-          <Button onClick={loadReports} loading={loading}>
+          <Button onClick={() => {
+            console.log('Load Reports clicked');
+            console.log('selectedTerm:', selectedTerm);
+            console.log('selectedYear:', selectedYear);
+            console.log('selectedClass:', selectedClass);
+            console.log('selectedSubject:', selectedSubject);
+            console.log('isClassTeacher():', isClassTeacher());
+            loadReports();
+          }} loading={loading}>
             Load Reports
           </Button>
         </div>
       </Card>
 
       {/* Reports Table */}
+      {console.log('Rendering reports table, reports.length:', reports.length, 'reports:', reports)}
       {reports.length > 0 && (
         <Card>
           <div className="p-4 border-b">
             <h3 className="text-lg font-medium">Student Reports</h3>
           </div>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <Table.Header>
               <Table.Row>
                 <Table.HeaderCell>Student</Table.HeaderCell>
-                <Table.HeaderCell>Subjects</Table.HeaderCell>
+                <Table.HeaderCell>Subject</Table.HeaderCell>
+                <Table.HeaderCell>Coursework</Table.HeaderCell>
+                <Table.HeaderCell>Exam</Table.HeaderCell>
                 <Table.HeaderCell>Overall Comment</Table.HeaderCell>
                 <Table.HeaderCell>Status</Table.HeaderCell>
                 <Table.HeaderCell>Actions</Table.HeaderCell>
@@ -253,24 +332,22 @@ const ReportsPage: React.FC = () => {
                     <div className="space-y-1">
                       {report.subjectReports && report.subjectReports.length > 0 ? (
                         report.subjectReports.map((subjectReport, index) => (
-                          <div key={`subject-${reportIndex}-${index}`} className="flex items-center justify-between text-sm">
-                            <span>{subjectReport.subjectName || 'Unknown Subject'}</span>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-gray-600">
-                                {subjectReport.finalMark ? `${subjectReport.finalMark}%` : 'No marks'}
-                              </span>
-                              {canAddSubjectComments() && canCommentOnSubject(subjectReport.subjectId) && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleSubjectComment(report, subjectReport)}
-                                  className={subjectReport.comment ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}
-                                  title={subjectReport.comment ? 'Comment added - click to edit' : 'Add subject comment'}
-                                >
-                                  <MessageSquare className={`h-3 w-3 ${subjectReport.comment ? 'fill-current' : ''}`} />
-                                </Button>
-                              )}
-                            </div>
+                          <div key={`subject-${reportIndex}-${index}`} className="text-sm flex items-center">
+                            <span className="font-medium">{subjectReport.subjectName || 'Unknown Subject'}</span>
+                            {!subjectReport.comment && canAddOverallComments() && (
+                              <AlertTriangle className="h-3 w-3 ml-1 text-amber-500" title="No comment yet" />
+                            )}
+                            {canAddSubjectComments() && canCommentOnSubject(subjectReport.subjectId) && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleSubjectComment(report, subjectReport)}
+                                className={`ml-2 ${subjectReport.comment ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
+                                title={subjectReport.comment ? 'Comment added - click to edit' : 'Add subject comment'}
+                              >
+                                <MessageSquare className={`h-3 w-3 ${subjectReport.comment ? 'fill-current' : ''}`} />
+                              </Button>
+                            )}
                           </div>
                         ))
                       ) : (
@@ -279,9 +356,64 @@ const ReportsPage: React.FC = () => {
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <div className="text-sm">
+                    <div className="space-y-1">
+                      {report.subjectReports && report.subjectReports.length > 0 ? (
+                        report.subjectReports.map((subjectReport, index) => (
+                          <div key={`coursework-${reportIndex}-${index}`} className="text-sm">
+                            {subjectReport.courseworkMark ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 font-medium">
+                                {subjectReport.courseworkMark}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-500">-</div>
+                      )}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <div className="space-y-1">
+                      {report.subjectReports && report.subjectReports.length > 0 ? (
+                        report.subjectReports.map((subjectReport, index) => (
+                          <div key={`exam-${reportIndex}-${index}`} className="text-sm">
+                            {subjectReport.examMark ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800 font-medium">
+                                {subjectReport.examMark}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-500">-</div>
+                      )}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <div className="text-sm max-w-xs">
                       {report.overallComment ? (
-                        <span className="text-green-600">Added</span>
+                        <div className="text-gray-700">
+                          {report.overallComment.length > 100 ? (
+                            <div>
+                              <span>{report.overallComment.substring(0, 100)}...</span>
+                              <button
+                                onClick={() => {
+                                  setFullComment(report.overallComment);
+                                  setIsViewCommentModalOpen(true);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 ml-1 underline text-xs"
+                              >
+                                View Full
+                              </button>
+                            </div>
+                          ) : (
+                            <span>{report.overallComment}</span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-400">Not added</span>
                       )}
@@ -306,6 +438,7 @@ const ReportsPage: React.FC = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleOverallComment(report)}
+                          title={getSubjectsWithoutCommentsWarning(report) || 'Add overall comment'}
                         >
                           <MessageSquare className="h-3 w-3 mr-1" />
                           Overall Comment
@@ -314,7 +447,8 @@ const ReportsPage: React.FC = () => {
                       {canAddOverallComments() && !report.finalized && (
                         <Button
                           size="sm"
-                          onClick={() => finalizeReport(report.id)}
+                          onClick={() => handleFinalizeReport(report)}
+                          title={getSubjectsWithoutCommentsWarning(report) || 'Finalize report'}
                         >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Finalize
@@ -332,6 +466,7 @@ const ReportsPage: React.FC = () => {
               ))}
             </Table.Body>
           </Table>
+          </div>
         </Card>
       )}
 
@@ -399,6 +534,24 @@ const ReportsPage: React.FC = () => {
             </Button>
             <Button onClick={saveOverallComment}>
               Save Comment
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* View Full Comment Modal */}
+      <Modal
+        isOpen={isViewCommentModalOpen}
+        onClose={() => setIsViewCommentModalOpen(false)}
+        title="Overall Comment"
+      >
+        <div className="space-y-4">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{fullComment}</p>
+          </div>
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setIsViewCommentModalOpen(false)}>
+              Close
             </Button>
           </div>
         </div>

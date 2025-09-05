@@ -123,9 +123,12 @@ const PrintReportsPage: React.FC = () => {
           };
           
           const categorizedSubjects = categorizeSubjects(report.subjectReports || []);
-          const passedSubjects = (report.subjectReports || []).filter(sr => (sr.finalMark || 0) >= 50).length;
+          // Calculate passed subjects based on individual marks (passing grade is 50%)
+          const passedSubjects = report.subjectReports.filter(sr => 
+            (sr.courseworkMark && sr.courseworkMark >= 50) || 
+            (sr.examMark && sr.examMark >= 50)
+          ).length;
           
-          console.log('Subject reports with signatures:', report.subjectReports);
           
           printWindow.document.write(`
             <html>
@@ -306,7 +309,7 @@ const PrintReportsPage: React.FC = () => {
                               <td>${sr.examMark !== null && sr.examMark !== undefined ? Math.round(sr.examMark) : '-'}</td>
                               <td>${sr.examMark ? examGrade : '-'}</td>
                               <td style="text-align: left; font-size: 8px; max-width: 120px; word-wrap: break-word;">${sr.comment || '<span style="color: #999;">No comment</span>'}</td>
-                              <td>${sr.teacherSignatureUrl ? `<img src="http://localhost:8080${sr.teacherSignatureUrl}" class="table-signature-img">` : sr.teacherId === 1 ? `<img src="http://localhost:8080/uploads/signatures/signature_1_1c6a5b6e-b180-47fc-811a-9d8779fa7d68.jpg" class="table-signature-img">` : '<span style="color: #999; font-size: 7px;">No signature</span>'}</td>
+                              <td>${sr.teacherSignatureUrl ? `<img src="http://localhost:8080${sr.teacherSignatureUrl}" class="table-signature-img">` : '<span style="color: #999; font-size: 7px;">No signature</span>'}</td>
                             </tr>
                           `;
                         }).join('')}
@@ -323,11 +326,11 @@ const PrintReportsPage: React.FC = () => {
                     </div>
                     <div class="signature-field">
                       <span class="field-label">Form Teacher's Signature:</span>
-                      ${classTeacherSig && classTeacherSig.signatureUrl ? `<img src="http://localhost:8080${classTeacherSig.signatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px;">No signature uploaded</span>'}
+                      ${report.classTeacherSignatureUrl ? `<img src="http://localhost:8080${report.classTeacherSignatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px;">No signature uploaded</span>'}
                     </div>
                     <div class="signature-field">
                       <span class="field-label">Principal's Signature:</span>
-                      ${principalSig && principalSig.signatureUrl ? `<img src="http://localhost:8080${principalSig.signatureUrl}" class="signature-img">` : '<span style="color: #999; font-size: 9px;">No signature uploaded</span>'}
+                      ${principalSig && principalSig.signatureUrl ? `<img src="http://localhost:8080${principalSig.signatureUrl}" class="signature-img">` : '<img src="http://localhost:8080/uploads/signatures/signature_3_403f84f5-7431-4b1f-8b22-dd23908e90d3.png" class="signature-img">'}
                     </div>
                     <div class="signature-field">
                       <span class="field-label">Parent's Signature:</span> <span style="color: #333; font-size: 10px;">___________________________</span>

@@ -13,6 +13,7 @@ public class StudentReportDTO {
     private List<SubjectReportDTO> subjectReports;
     private String overallComment;
     private boolean finalized;
+    private String classTeacherSignatureUrl;
 
     public StudentReportDTO() {}
 
@@ -61,4 +62,7 @@ public class StudentReportDTO {
 
     public boolean isFinalized() { return finalized; }
     public void setFinalized(boolean finalized) { this.finalized = finalized; }
+
+    public String getClassTeacherSignatureUrl() { return classTeacherSignatureUrl; }
+    public void setClassTeacherSignatureUrl(String classTeacherSignatureUrl) { this.classTeacherSignatureUrl = classTeacherSignatureUrl; }
 }

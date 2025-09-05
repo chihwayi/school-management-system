@@ -73,3 +73,21 @@ target/
 # Docker volumes (if mounted locally)
 mysql_data/
 backend_uploads/
+
+# Sensitive configuration files
+application-local.properties
+application-secret.properties
+*.secret
+*.key
+*.pem
+*.p12
+
+# API Keys and secrets
+.env.secret
+.env.production
+.env.local
+secrets/
+keys/
+
+# Uploads directory (may contain sensitive files)
+uploads/

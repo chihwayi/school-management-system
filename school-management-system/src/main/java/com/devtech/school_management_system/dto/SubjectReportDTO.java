@@ -11,6 +11,7 @@ public class SubjectReportDTO {
     private String comment;
     private Long teacherId;
     private String teacherName;
+    private String teacherSignatureUrl;
 
     public SubjectReportDTO() {}
 
@@ -60,5 +61,6 @@ public class SubjectReportDTO {
     public String getTeacherName() { return teacherName; }
     public void setTeacherName(String teacherName) { this.teacherName = teacherName; }
 
-
+    public String getTeacherSignatureUrl() { return teacherSignatureUrl; }
+    public void setTeacherSignatureUrl(String teacherSignatureUrl) { this.teacherSignatureUrl = teacherSignatureUrl; }
 }

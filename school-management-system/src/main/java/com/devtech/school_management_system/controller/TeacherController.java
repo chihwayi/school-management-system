@@ -44,7 +44,7 @@ public class TeacherController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public Teacher getTeacherById(@PathVariable Long id) {
         return teacherService.getTeacherById(id);
     }
@@ -80,14 +80,14 @@ public class TeacherController {
     }
 
     @GetMapping("/current")
-    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
     public Teacher getCurrentTeacher(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getTeacherByUsername(username);
     }
 
     @GetMapping("/assignments/current")
-    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
     public List<TeacherSubjectClassDTO> getAssignedSubjectsAndClasses(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getAssignedSubjectsAndClassesDTO(username);
@@ -103,7 +103,7 @@ public class TeacherController {
     }
 
     @GetMapping("/supervised-classes")
-    @PreAuthorize("hasAnyRole('TEACHER', 'CLASS_TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_CLASS_TEACHER')")
     public List<ClassGroupWithStudentsDTO> getSupervisedClasses(Authentication authentication) {
         String username = authentication.getName();
         return teacherService.getSupervisedClasses(username);
@@ -122,7 +122,7 @@ public class TeacherController {
     }
     
     @GetMapping("/{teacherId}/assignments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public List<TeacherSubjectClassDTO> getTeacherAssignments(@PathVariable Long teacherId) {
         return teacherAssignmentService.getTeacherAssignmentsDTO(teacherId);
     }

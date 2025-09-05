@@ -20,11 +20,14 @@ interface SubjectAssignment {
 
 interface TeacherAssignment {
   id: number;
-  subject: {
+  subject?: {
     id: number;
     name: string;
     code: string;
   };
+  subjectId?: number;
+  subjectName?: string;
+  subjectCode?: string;
   form: string;
   section: string;
 }

@@ -3,6 +3,7 @@ package com.devtech.school_management_system.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -48,7 +49,7 @@ public class Report {
     private boolean finalized = false;
 
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<SubjectReport> subjectReports;
+    private List<SubjectReport> subjectReports = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -148,6 +149,9 @@ public class Report {
     }
 
     public List<SubjectReport> getSubjectReports() {
+        if (subjectReports == null) {
+            subjectReports = new ArrayList<>();
+        }
         return subjectReports;
     }
 

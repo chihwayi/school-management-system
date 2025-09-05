@@ -19,13 +19,13 @@ public class SectionController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public List<Section> getAllSections() {
         return sectionService.getAllSections();
     }
 
     @GetMapping("/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public List<Section> getActiveSections() {
         return sectionService.getActiveSections();
     }

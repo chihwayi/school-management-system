@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
-import { Button, Input, Select } from '../ui';
+import { Button, Input, Select, SearchableSelect } from '../ui';
 import type { AssessmentDTO, Assessment } from '../../types';
 import { AssessmentType } from '../../types';
 import { formatAssessmentType } from '../../utils';
@@ -21,7 +20,6 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
-  studentSubjectId = 0,
   isLoading = false
 }) => {
   const [teacherAssignments, setTeacherAssignments] = useState<any[]>([]);
@@ -74,12 +72,12 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     loadTeacherAssignments();
   }, []);
 
-  // Load existing assessments when all filters are set
+  // Load existing assessments when all filters are set AND students are loaded
   useEffect(() => {
-    if (selectedAssignment && selectedTerm && selectedYear) {
+    if (selectedAssignment && selectedTerm && selectedYear && students.length > 0) {
       loadExistingAssessments();
     }
-  }, [selectedAssignment, selectedTerm, selectedYear]);
+  }, [selectedAssignment, selectedTerm, selectedYear, students]);
 
   // Filter students when existing assessments change
   useEffect(() => {
@@ -131,14 +129,9 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
 
   const loadExistingAssessments = async () => {
     try {
-      const subjectId = selectedAssignment.subject?.id;
+      // Handle both possible structures: subject.id or subjectId
+      const subjectId = selectedAssignment.subject?.id || (selectedAssignment as any)?.subjectId;
       if (!subjectId) return;
-
-      console.log('Loading existing assessments for:', {
-        subjectId,
-        term: selectedTerm,
-        year: selectedYear
-      });
 
       const allAssessments: any[] = [];
       
@@ -161,7 +154,6 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
         }
       }
       
-      console.log('Loaded existing assessments:', allAssessments);
       setExistingAssessments(allAssessments);
     } catch (error) {
       console.error('Error loading existing assessments:', error);
@@ -169,16 +161,10 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   };
 
   const filterAvailableStudents = () => {
-    const subjectId = selectedAssignment.subject?.id;
+    // Handle both possible structures: subject.id or subjectId
+    const subjectId = selectedAssignment.subject?.id || (selectedAssignment as any)?.subjectId;
     
-    console.log('Filtering students with:', {
-      totalStudents: students.length,
-      existingAssessments: existingAssessments.length,
-      watchedType,
-      selectedTerm,
-      selectedYear
-    });
-    
+    // Show all students but with intelligent filtering based on assessment status
     const availableStudents = students.filter(student => {
       // Get all assessments for this student, subject, term, and year
       const studentAssessments = existingAssessments.filter((assessment: any) => 
@@ -187,8 +173,6 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
         assessment.term === selectedTerm &&
         assessment.academicYear === selectedYear
       );
-      
-      console.log(`Student ${student.firstName} ${student.lastName} has ${studentAssessments.length} assessments:`, studentAssessments);
       
       // Check if student has completed both Coursework and Final Exam
       const hasCompletedCoursework = studentAssessments.some((assessment: any) => 
@@ -201,30 +185,11 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       
       // If student has completed all assessment types, they should be hidden
       if (hasCompletedAllTypes) {
-        console.log(`Student ${student.firstName} ${student.lastName}: HIDDEN - Completed all assessment types`);
         return false;
       }
       
-      // If an assessment type is selected, check if student has completed that specific type
-      if (watchedType) {
-        const hasCompletedCurrentType = studentAssessments.some((assessment: any) => 
-          assessment.type === watchedType
-        );
-        
-        if (hasCompletedCurrentType) {
-          console.log(`Student ${student.firstName} ${student.lastName}: HIDDEN - Already completed ${watchedType}`);
-          return false;
-        }
-      }
-      
-      // Student is available
-      console.log(`Student ${student.firstName} ${student.lastName}: AVAILABLE - Can record assessment`);
+      // Student is available (they have at least one assessment type not completed)
       return true;
-    });
-    
-    console.log('Filtering results:', {
-      totalStudents: students.length,
-      availableStudents: availableStudents.length
     });
     
     setFilteredStudents(availableStudents);
@@ -275,7 +240,8 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     setSelectedStudent(student);
     
     if (student && selectedAssignment) {
-      const subjectId = selectedAssignment.subject?.id;
+      // Handle both possible structures: subject.id or subjectId
+      const subjectId = selectedAssignment.subject?.id || (selectedAssignment as any)?.subjectId;
       setValue('studentId', student.id);
       setValue('subjectId', subjectId);
     }
@@ -289,7 +255,8 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       ];
     }
 
-    const subjectId = selectedAssignment.subject?.id;
+    // Handle both possible structures: subject.id or subjectId
+    const subjectId = selectedAssignment.subject?.id || (selectedAssignment as any)?.subjectId;
     const studentAssessments = existingAssessments.filter((assessment: any) => 
       assessment.studentId === selectedStudent.id &&
       assessment.subjectId === subjectId &&
@@ -299,16 +266,62 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
 
     const completedTypes = studentAssessments.map((assessment: any) => assessment.type);
     
-    return [
+    const availableTypes = [
       { value: AssessmentType.COURSEWORK, label: formatAssessmentType(AssessmentType.COURSEWORK) },
       { value: AssessmentType.FINAL_EXAM, label: formatAssessmentType(AssessmentType.FINAL_EXAM) }
     ].filter(option => !completedTypes.includes(option.value));
+
+    return availableTypes;
+  };
+
+  const getStudentAssessmentStatus = () => {
+    if (!selectedStudent || !selectedAssignment) {
+      return { hasAssessments: false, completedTypes: [], availableTypes: [], allCompleted: false };
+    }
+
+    // Handle both possible structures: subject.id or subjectId
+    const subjectId = selectedAssignment.subject?.id || (selectedAssignment as any)?.subjectId;
+    
+    const studentAssessments = existingAssessments.filter((assessment: any) => 
+      assessment.studentId === selectedStudent.id &&
+      assessment.subjectId === subjectId &&
+      assessment.term === selectedTerm &&
+      assessment.academicYear === selectedYear
+    );
+
+    const completedTypes = studentAssessments.map((assessment: any) => assessment.type);
+    const availableTypes = getAvailableAssessmentTypes();
+
+    return {
+      hasAssessments: studentAssessments.length > 0,
+      completedTypes,
+      availableTypes,
+      allCompleted: availableTypes.length === 0 && studentAssessments.length > 0
+    };
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleFormSubmit = async (data: AssessmentDTO) => {
     if (isSubmitting) return;
+    
+    // Check for duplicate assessment before submission
+    const status = getStudentAssessmentStatus();
+    if (status.allCompleted) {
+      alert('All assessment types have already been completed for this student, subject, term, and year. Cannot create duplicate assessments.');
+      return;
+    }
+    
+    const availableTypes = getAvailableAssessmentTypes();
+    if (availableTypes.length === 0) {
+      alert('No assessment types are available for this student. All types have been completed.');
+      return;
+    }
+    
+    if (!availableTypes.some(type => type.value === data.type)) {
+      alert(`Assessment type "${data.type}" has already been completed for this student. Please select a different type.`);
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -395,22 +408,55 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       {/* Step 4: Student (only if subject is selected) */}
       {selectedAssignment && (
         <div>
-          <Select
+          <SearchableSelect
             label="Student *"
-            options={[
-              { value: '', label: filteredStudents.length > 0 ? 'Select Student' : 'No available students' },
-              ...filteredStudents.map(student => ({
+            options={filteredStudents.map(student => {
+              // Get assessment status for this student
+              const subjectId = selectedAssignment.subject?.id || (selectedAssignment as any)?.subjectId;
+              const studentAssessments = existingAssessments.filter((assessment: any) => 
+                assessment.studentId === student.id &&
+                assessment.subjectId === subjectId &&
+                assessment.term === selectedTerm &&
+                assessment.academicYear === selectedYear
+              );
+              
+              const completedTypes = studentAssessments.map((assessment: any) => assessment.type);
+              const hasCoursework = completedTypes.includes(AssessmentType.COURSEWORK);
+              const hasFinalExam = completedTypes.includes(AssessmentType.FINAL_EXAM);
+              
+              let statusText = '';
+              if (hasCoursework && hasFinalExam) {
+                statusText = '✅ All assessments completed';
+              } else if (hasCoursework) {
+                statusText = '📝 Coursework done, Final Exam pending';
+              } else if (hasFinalExam) {
+                statusText = '📝 Final Exam done, Coursework pending';
+              } else {
+                statusText = '📝 No assessments recorded';
+              }
+
+              return {
                 value: student.id.toString(),
-                label: `${student.firstName} ${student.lastName} (${student.studentId})`
-              }))
-            ]}
+                label: `${student.firstName} ${student.lastName}`,
+                subtitle: `Student ID: ${student.studentId} | ${student.form} ${student.section} | ${statusText}`
+              };
+            })}
             value={selectedStudent?.id?.toString() || ''}
-            onChange={(e) => handleStudentChange(e.target.value)}
+            onChange={handleStudentChange}
+            placeholder={filteredStudents.length > 0 ? 'Search and select a student...' : 'No available students'}
             disabled={!selectedAssignment || filteredStudents.length === 0}
+            searchPlaceholder="Search by name or student ID..."
+            maxHeight="300px"
+            showSearch={filteredStudents.length > 5}
           />
           {filteredStudents.length === 0 && students.length > 0 && (
             <p className="text-sm text-amber-600 mt-1">
               All students have completed their assessments for this subject, term, and year.
+            </p>
+          )}
+          {filteredStudents.length > 0 && (
+            <p className="text-sm text-gray-600 mt-1">
+              {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} available for assessment
             </p>
           )}
         </div>
@@ -489,6 +535,29 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                   required: 'Assessment type is required'
                 })}
               />
+              {(() => {
+                const status = getStudentAssessmentStatus();
+                if (status.allCompleted) {
+                  return (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✅ All assessment types have been completed for this student, subject, term, and year.
+                    </p>
+                  );
+                } else if (status.hasAssessments) {
+                  const completedTypes = status.completedTypes.map(type => formatAssessmentType(type)).join(', ');
+                  return (
+                    <p className="text-sm text-blue-600 mt-1">
+                      📝 Already completed: {completedTypes}. Only remaining types are shown above.
+                    </p>
+                  );
+                } else {
+                  return (
+                    <p className="text-sm text-gray-600 mt-1">
+                      📝 No assessments recorded yet. Both Coursework and Final Exam are available.
+                    </p>
+                  );
+                }
+              })()}
             </div>
           </div>
 

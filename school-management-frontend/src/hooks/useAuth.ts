@@ -76,7 +76,7 @@ export const useRoleCheck = () => {
     canMarkAttendance: () => hasAnyRole([ERole.ROLE_CLASS_TEACHER]),
     canAddSubjectComments: () => hasAnyRole([ERole.ROLE_TEACHER, ERole.ROLE_CLASS_TEACHER]),
     canAddOverallComments: () => hasAnyRole([ERole.ROLE_CLASS_TEACHER]),
-    canFinalizeReports: () => hasAnyRole([ERole.ROLE_ADMIN, ERole.ROLE_CLERK]),
+    canFinalizeReports: () => hasAnyRole([ERole.ROLE_CLASS_TEACHER]),
     canViewReports: () => hasAnyRole([ERole.ROLE_ADMIN, ERole.ROLE_CLERK, ERole.ROLE_TEACHER, ERole.ROLE_CLASS_TEACHER]),
     canConfigureSchool: () => hasRole(ERole.ROLE_ADMIN),
   };

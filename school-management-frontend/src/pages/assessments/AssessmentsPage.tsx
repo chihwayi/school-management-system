@@ -4,7 +4,21 @@ import { assessmentService } from '../../services/assessmentService';
 import { teacherService } from '../../services/teacherService';
 import { studentService } from '../../services/studentService';
 import { AssessmentType } from '../../types';
-import type { Assessment, TeacherSubjectClass  } from '../../types';
+import type { Assessment } from '../../types';
+
+interface TeacherAssignment {
+  id: number;
+  subject?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  subjectId?: number;
+  subjectName?: string;
+  subjectCode?: string;
+  form: string;
+  section: string;
+}
 import { Card, Button, Input, Table, Modal, Select, Badge } from '../../components/ui';
 import { AssessmentForm } from '../../components/forms';
 import { Plus, Search, Edit, Trash2, Eye, FileText, Calendar, Filter } from 'lucide-react';
@@ -18,7 +32,7 @@ const AssessmentsPage: React.FC = () => {
   const navigate = useNavigate();
   
   const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [teacherAssignments, setTeacherAssignments] = useState<TeacherSubjectClass[]>([]);
+  const [teacherAssignments, setTeacherAssignments] = useState<TeacherAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('');
@@ -46,11 +60,12 @@ const AssessmentsPage: React.FC = () => {
         const allAssessments: Assessment[] = [];
         for (const assignment of assignments) {
           // Skip assignments with missing data
-          if (!assignment?.form || !assignment?.section || !assignment?.subjectId) {
+          // Handle both possible structures: subject.id or subjectId
+          const subjectId = assignment?.subject?.id || (assignment as any)?.subjectId;
+          if (!assignment?.form || !assignment?.section || !subjectId) {
             console.warn('Skipping assignment with missing data:', assignment);
             continue;
           }
-          
           try {
             const students = await studentService.getStudentsByClass(assignment.form, assignment.section);
             for (const student of students) {
@@ -58,7 +73,7 @@ const AssessmentsPage: React.FC = () => {
               
               const studentAssessments = await assessmentService.getStudentSubjectAssessments(
                 student.id, 
-                assignment.subjectId // Use subjectId directly instead of assignment.subject.id
+                subjectId // Use the resolved subjectId
               );
               allAssessments.push(...studentAssessments);
             }

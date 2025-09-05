@@ -290,3 +290,7 @@ const StudentReportDetailPage: React.FC = () => {
 
 export default StudentReportDetailPage;
 
+
+
+
+

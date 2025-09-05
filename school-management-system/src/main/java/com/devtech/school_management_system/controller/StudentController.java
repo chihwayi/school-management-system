@@ -34,67 +34,67 @@ public class StudentController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public List<Student> getAllStudents() {
         return studentService.getAllStudents();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public Student getStudentById(@PathVariable Long id) {
         return studentService.getStudentById(id);
     }
 
     @PostMapping("/create")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public Student createStudent(@RequestBody StudentRegistrationDTO registrationDTO) {
         return studentService.createStudentWithGuardians(registrationDTO);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public Student updateStudent(@PathVariable Long id, @RequestBody StudentUpdateDTO updateDTO) {
         return studentService.updateStudent(id, updateDTO);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
     }
 
     @GetMapping("/form/{form}/section/{section}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public List<Student> getStudentsByClass(@PathVariable String form, @PathVariable String section) {
         return studentService.getStudentsByClass(form, section);
     }
 
     @PostMapping("/{id}/assign-subject/{subjectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public StudentSubject assignSubjectToStudent(@PathVariable Long id, @PathVariable Long subjectId) {
         return studentService.assignSubjectToStudent(id, subjectId);
     }
 
     @DeleteMapping("/{id}/remove-subject/{subjectId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public void removeSubjectFromStudent(@PathVariable Long id, @PathVariable Long subjectId) {
         studentService.removeSubjectFromStudent(id, subjectId);
     }
 
     @GetMapping("/{id}/subjects")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public List<Subject> getStudentSubjects(@PathVariable Long id) {
         return studentService.getStudentSubjects(id);
     }
 
     @PostMapping("/batch/advance-form")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public List<Student> advanceStudentsToNextForm(@RequestBody List<Long> studentIds) {
         return studentService.advanceStudentsToNextForm(studentIds);
     }
 
     @PostMapping("/batch/promote-to-a-level")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public List<Student> promoteStudentsToALevel(@RequestBody PromotionToALevelDTO promotionDTO) {
         return studentService.promoteStudentsToALevel(
                 promotionDTO.getStudentIds(),
@@ -105,7 +105,7 @@ public class StudentController {
     }
     
     @PostMapping("/fix-academic-years")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public String fixAcademicYears() {
         List<Student> students = studentRepository.findAll();
         int updatedCount = 0;
@@ -122,7 +122,7 @@ public class StudentController {
     }
 
     @PostMapping("/bulk-assign-subjects")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public void bulkAssignSubjectsToClass(@RequestBody java.util.Map<String, Object> requestBody) {
         String form = (String) requestBody.get("form");
         String section = (String) requestBody.get("section");
@@ -137,13 +137,13 @@ public class StudentController {
     }
 
     @PostMapping("/assign-subjects")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
     public List<StudentSubject> hybridAssignSubjects(@RequestBody StudentSubjectAssignmentDTO assignmentDTO) {
         return studentService.hybridAssignSubjects(assignmentDTO);
     }
 
     @GetMapping("/{studentId}/subject/{subjectId}/relationship")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CLERK', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
     public StudentSubject getStudentSubjectRelationship(@PathVariable Long studentId, @PathVariable Long subjectId) {
         return studentService.getStudentSubjectRelationship(studentId, subjectId);
     }

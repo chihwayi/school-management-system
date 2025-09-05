@@ -39,6 +39,7 @@ public class ReportController {
                                                     @PathVariable String term,
                                                     @PathVariable String year,
                                                     Authentication authentication) {
+        System.out.println("=== CONTROLLER: getSubjectReports called with subjectId=" + subjectId + ", form=" + form + ", section=" + section + ", term=" + term + ", year=" + year + " ===");
         return reportService.getSubjectReports(subjectId, form, section, term, year, authentication.getName());
     }
 
@@ -61,5 +62,13 @@ public class ReportController {
     public void finalizeReport(@PathVariable Long reportId,
                                Authentication authentication) {
         reportService.finalizeReport(reportId, authentication.getName());
+    }
+
+    @GetMapping("/test-assessments/{studentId}/{subjectId}/{term}/{year}")
+    public String testAssessments(@PathVariable Long studentId,
+                                  @PathVariable Long subjectId,
+                                  @PathVariable String term,
+                                  @PathVariable String year) {
+        return reportService.testAssessments(studentId, subjectId, term, year);
     }
 }
