@@ -75,6 +75,7 @@ mysql_data/
 backend_uploads/
 
 # Sensitive configuration files
+application.properties
 application-local.properties
 application-secret.properties
 *.secret
