@@ -41,19 +41,23 @@ const ClassesPage: React.FC = () => {
         try {
           // First try to get supervised classes (as class teacher)
           const supervisedClasses = await teacherService.getSupervisedClasses();
+          console.log('Supervised classes:', supervisedClasses);
           
           // Then get classes they teach subjects in
           const teachingAssignments = await teacherService.getAssignedSubjectsAndClasses();
+          console.log('Teaching assignments:', teachingAssignments);
           
-          // Extract unique classes from teaching assignments
+          // Extract unique classes from teaching assignments, but only if they have valid classGroupId
           const teachingClasses = teachingAssignments.reduce((classes: any[], assignment: any) => {
-            if (!classes.some(c => c.form === assignment.form && c.section === assignment.section)) {
-              classes.push({
-                id: assignment.classGroupId || 0,
-                form: assignment.form,
-                section: assignment.section,
-                academicYear: assignment.academicYear || new Date().getFullYear().toString()
-              });
+            if (assignment.classGroupId && assignment.classGroupId > 0) {
+              if (!classes.some(c => c.id === assignment.classGroupId)) {
+                classes.push({
+                  id: assignment.classGroupId,
+                  form: assignment.form,
+                  section: assignment.section,
+                  academicYear: assignment.academicYear || new Date().getFullYear().toString()
+                });
+              }
             }
             return classes;
           }, []);
@@ -65,9 +69,16 @@ const ClassesPage: React.FC = () => {
           classesData = classesData.filter((class1, index, self) => 
             index === self.findIndex(class2 => class2.id === class1.id)
           );
+          
+          // If no classes found, fallback to loading all classes
+          if (classesData.length === 0) {
+            console.log('No teacher-specific classes found, loading all classes as fallback');
+            classesData = await classService.getAllClassGroups();
+          }
         } catch (error) {
           console.error('Error loading teacher classes:', error);
-          classesData = [];
+          // Fallback to loading all classes
+          classesData = await classService.getAllClassGroups();
         }
       } else {
         // For admin/clerk, load all classes
@@ -196,8 +207,7 @@ const ClassesPage: React.FC = () => {
     const matchesSearch = searchTerm === '' ||
       classGroup.form.toLowerCase().includes(searchTerm.toLowerCase()) ||
       classGroup.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classGroup.classTeacher?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classGroup.classTeacher?.lastName.toLowerCase().includes(searchTerm.toLowerCase());
+      (classGroup.classTeacherName && classGroup.classTeacherName.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesYear = yearFilter === '' || classGroup.academicYear === yearFilter;
 
@@ -227,9 +237,7 @@ const ClassesPage: React.FC = () => {
       form: classGroup.form,
       section: classGroup.section,
       academicYear: classGroup.academicYear,
-      classTeacher: classGroup.classTeacher && classGroup.classTeacher.firstName
-        ? `${classGroup.classTeacher.firstName} ${classGroup.classTeacher.lastName}`
-        : classGroup.classTeacherName || 'Not Assigned',
+      classTeacher: classGroup.classTeacherName || 'Not Assigned',
       studentCount: classGroup.students?.length || 0,
       actions: (
         <div className="flex space-x-2">

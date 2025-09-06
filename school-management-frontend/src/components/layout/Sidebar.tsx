@@ -176,6 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             show: isTeacher() || isClassTeacher(), // Only visible to teachers
             children: [
                 { name: 'Dashboard', href: ROUTES.AI_DASHBOARD, current: location.pathname === ROUTES.AI_DASHBOARD },
+                { name: 'AI Providers', href: ROUTES.AI_PROVIDERS, current: location.pathname === ROUTES.AI_PROVIDERS, show: isTeacher() || isClassTeacher() },
                 { name: 'Resources', href: ROUTES.AI_RESOURCES, current: location.pathname === ROUTES.AI_RESOURCES, show: isTeacher() || isClassTeacher() },
                 { name: 'Generate Content', href: ROUTES.AI_GENERATE, current: location.pathname === ROUTES.AI_GENERATE, show: isTeacher() || isClassTeacher() },
                 { name: 'My Content', href: ROUTES.AI_CONTENT, current: location.pathname === ROUTES.AI_CONTENT, show: isTeacher() || isClassTeacher() },

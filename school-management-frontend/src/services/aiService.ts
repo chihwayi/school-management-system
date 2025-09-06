@@ -91,6 +91,34 @@ export const aiService = {
     return response.data;
   },
 
+  getUsageLimits: async (): Promise<any> => {
+    const response = await api.get('/ai/analytics/usage/limits');
+    return response.data;
+  },
+
+  // AI Provider Management
+  getProviderStatus: async (): Promise<any> => {
+    const response = await api.get('/ai/providers/status');
+    return response.data;
+  },
+
+  getAvailableModels: async (): Promise<any[]> => {
+    const response = await api.get('/ai/providers/models');
+    return response.data;
+  },
+
+    selectProvider: async (provider: string, model: string): Promise<any> => {
+        const response = await api.post('/ai/providers/select', null, {
+            params: { provider, model }
+        });
+        return response.data;
+    },
+
+    deleteUnpublishedContent: async (): Promise<any> => {
+        const response = await api.delete('/ai/content/unpublished');
+        return response.data;
+    },
+
   // AI Configuration
   getResourceTypes: async (): Promise<any[]> => {
     const response = await api.get('/ai/resource-types');
@@ -175,12 +203,7 @@ export const aiService = {
     return response.data;
   },
 
-  // AI Model Configuration
-  getAvailableModels: async (): Promise<any[]> => {
-    const response = await api.get('/ai/models');
-    return response.data;
-  },
-
+  // AI Model Configuration (Legacy - keeping for compatibility)
   selectModel: async (modelId: string): Promise<any> => {
     const response = await api.post(`/ai/models/${modelId}/select`);
     return response.data;

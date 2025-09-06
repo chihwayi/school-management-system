@@ -213,6 +213,50 @@ public class AiController {
         
         return ResponseEntity.ok(response);
     }
+    
+    @GetMapping("/analytics/usage/limits")
+    public ResponseEntity<Map<String, Object>> getUsageLimits() {
+        Teacher teacher = getCurrentTeacher();
+        Map<String, Object> limits = aiService.getTeacherUsageLimits(teacher.getId());
+        return ResponseEntity.ok(limits);
+    }
+    
+    // AI Provider Management
+    @GetMapping("/providers/status")
+    public ResponseEntity<Map<String, Object>> getProviderStatus() {
+        Map<String, Object> status = aiService.getProviderStatus();
+        return ResponseEntity.ok(status);
+    }
+    
+    @GetMapping("/providers/models")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableProvidersWithModels() {
+        List<Map<String, Object>> models = aiService.getAvailableModelsWithProviders();
+        return ResponseEntity.ok(models);
+    }
+    @PostMapping("/providers/select")
+    public ResponseEntity<Map<String, String>> selectProvider(
+            @RequestParam String provider,
+            @RequestParam String model) {
+        Teacher teacher = getCurrentTeacher();
+        aiService.selectProviderForTeacher(teacher.getId(), provider, model);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "AI provider selected successfully");
+        response.put("provider", provider);
+        response.put("model", model);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/content/unpublished")
+    public ResponseEntity<Map<String, String>> deleteUnpublishedContent() {
+        Teacher teacher = getCurrentTeacher();
+        int deletedCount = aiService.deleteUnpublishedContent(teacher.getId());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Deleted " + deletedCount + " unpublished content items");
+        response.put("deletedCount", String.valueOf(deletedCount));
+        return ResponseEntity.ok(response);
+    }
 
     // AI Resource Types
     @GetMapping("/resource-types")

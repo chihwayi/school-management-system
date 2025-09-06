@@ -205,6 +205,23 @@ const AiGeneratePage: React.FC = () => {
     }
   };
 
+  const handleDeleteUnpublished = async () => {
+    if (!confirm('Are you sure you want to delete all unpublished content? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const result = await aiService.deleteUnpublishedContent();
+      alert(result.message);
+      // Reload the generated content list
+      const contentData = await aiService.getTeacherGeneratedContent();
+      setGeneratedContent(contentData);
+    } catch (error) {
+      console.error('Failed to delete unpublished content:', error);
+      alert('Failed to delete unpublished content. Please try again.');
+    }
+  };
+
   const handleViewContent = (content: AiGeneratedContent) => {
     setSelectedContent(content);
     setShowContentModal(true);
@@ -295,7 +312,20 @@ const AiGeneratePage: React.FC = () => {
 
       {/* Generated Content List */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Generated Content</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Generated Content</h3>
+          {generatedContent.some(content => !content.published) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteUnpublished}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Delete Unpublished
+            </Button>
+          )}
+        </div>
         
         {generatedContent.length > 0 ? (
           <div className="space-y-4">

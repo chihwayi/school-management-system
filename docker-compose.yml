@@ -30,6 +30,8 @@ services:
       dockerfile: Dockerfile
     container_name: school_backend
     restart: unless-stopped
+    env_file:
+      - .env.local
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/school_management_system?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true

@@ -24,6 +24,17 @@ interface AiUsageStats {
   monthlyCost: number;
 }
 
+interface UsageLimits {
+  monthlyTokens: number;
+  maxMonthlyTokens: number;
+  monthlyCost: number;
+  maxMonthlyCost: number;
+  tokenUsagePercent: number;
+  costUsagePercent: number;
+  tokenWarning: boolean;
+  costWarning: boolean;
+}
+
 interface AiGeneratedContent {
   id: number;
   teacherId: number;
@@ -73,6 +84,7 @@ import { ROUTES } from '../../constants';
 const AiDashboardPage: React.FC = () => {
   const { theme } = useAuth();
   const [usageStats, setUsageStats] = useState<AiUsageStats | null>(null);
+  const [usageLimits, setUsageLimits] = useState<UsageLimits | null>(null);
   const [recentContent, setRecentContent] = useState<AiGeneratedContent[]>([]);
   const [recentResources, setRecentResources] = useState<AiResource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,13 +92,15 @@ const AiDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [stats, content, resources] = await Promise.all([
+        const [stats, limits, content, resources] = await Promise.all([
           aiService.getTeacherUsageStats(),
+          aiService.getUsageLimits(),
           aiService.getTeacherGeneratedContent(),
           aiService.getTeacherResources()
         ]);
 
         setUsageStats(stats);
+        setUsageLimits(limits);
         setRecentContent(content.slice(0, 5)); // Get latest 5
         setRecentResources(resources.slice(0, 5)); // Get latest 5
       } catch (error) {
@@ -182,19 +196,56 @@ const AiDashboardPage: React.FC = () => {
         ))}
       </div>
 
+      {/* Usage Warnings */}
+      {usageLimits && (usageLimits.tokenWarning || usageLimits.costWarning) && (
+        <Card className="p-6 border-l-4 border-yellow-400 bg-yellow-50">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-full bg-yellow-100">
+              <Target className="h-5 w-5 text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-800">Usage Warning</h3>
+              <div className="text-sm text-yellow-700">
+                {usageLimits.tokenWarning && (
+                  <p>⚠️ Token usage: {usageLimits.tokenUsagePercent.toFixed(1)}% of monthly limit</p>
+                )}
+                {usageLimits.costWarning && (
+                  <p>⚠️ Cost usage: {usageLimits.costUsagePercent.toFixed(1)}% of monthly budget</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Stats Overview */}
-      {usageStats && (
+      {usageStats && usageLimits && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 rounded-lg bg-blue-100">
                 <TrendingUp className="h-6 w-6 text-blue-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-gray-600">Monthly Tokens</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {usageStats.monthlyTokens.toLocaleString()}
                 </p>
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Usage</span>
+                    <span>{usageLimits.tokenUsagePercent.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div 
+                      className={`h-2 rounded-full ${usageLimits.tokenWarning ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                      style={{ width: `${Math.min(usageLimits.tokenUsagePercent, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Limit: {usageLimits.maxMonthlyTokens.toLocaleString()} tokens
+                  </p>
+                </div>
               </div>
             </div>
           </Card>
@@ -204,11 +255,26 @@ const AiDashboardPage: React.FC = () => {
               <div className="p-3 rounded-lg bg-green-100">
                 <Target className="h-6 w-6 text-green-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-gray-600">Monthly Cost</p>
                 <p className="text-2xl font-bold text-gray-900">
                   ${(usageStats.monthlyCost / 100).toFixed(2)}
                 </p>
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Usage</span>
+                    <span>{usageLimits.costUsagePercent.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div 
+                      className={`h-2 rounded-full ${usageLimits.costWarning ? 'bg-yellow-500' : 'bg-green-500'}`}
+                      style={{ width: `${Math.min(usageLimits.costUsagePercent, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Budget: ${(usageLimits.maxMonthlyCost / 100).toFixed(2)}
+                  </p>
+                </div>
               </div>
             </div>
           </Card>

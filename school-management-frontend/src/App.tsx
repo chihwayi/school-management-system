@@ -54,6 +54,7 @@ import {
 } from './pages/ai';
 import AiTemplatesPage from './pages/ai/AiTemplatesPage';
 import AiStudentContentPage from './pages/ai/AiStudentContentPage';
+import AiProvidersPage from './pages/ai/AiProvidersPage';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
@@ -209,6 +210,7 @@ const App: React.FC = () => {
 
                 {/* AI Assistant Routes - Only for Teachers */}
                 <Route path="ai" element={<ProtectedRoute element={<AiDashboardPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
+                <Route path="ai/providers" element={<ProtectedRoute element={<AiProvidersPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
                 <Route path="ai/resources" element={<ProtectedRoute element={<AiResourcesPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
                 <Route path="ai/generate" element={<ProtectedRoute element={<AiGeneratePage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
                 <Route path="ai/content" element={<ProtectedRoute element={<AiContentPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />

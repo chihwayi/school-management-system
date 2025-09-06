@@ -12,6 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,14 +54,17 @@ public class AiService {
 
     @Autowired
     private OpenAiService openAiService;
+    
+    @Autowired
+    private AiProviderService aiProviderService;
 
     @Value("${app.upload.path:uploads}")
     private String uploadPath;
 
-    @Value("${app.ai.model.version:gpt-4}")
+    @Value("${ai.openai.model:gpt-4o-mini}")
     private String aiModelVersion;
 
-    @Value("${app.ai.api.key:}")
+    @Value("${ai.openai.api-key:}")
     private String aiApiKey;
 
     @Value("${app.ai.api.url:https://api.openai.com/v1/chat/completions}")
@@ -406,6 +412,201 @@ public class AiService {
     public Long getTeacherTotalCost(Long teacherId, LocalDateTime since) {
         return aiUsageLogRepository.getTotalCostByTeacherSince(teacherId, since);
     }
+    
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTeacherUsageLimits(Long teacherId) {
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        Long monthlyTokens = getTeacherTotalTokens(teacherId, startOfMonth);
+        Long monthlyCost = getTeacherTotalCost(teacherId, startOfMonth);
+        
+        // Define limits (these could be configurable)
+        long maxMonthlyTokens = 100000L; // 100K tokens per month
+        long maxMonthlyCost = 5000L; // $50 per month (in cents)
+        
+        Map<String, Object> limits = new HashMap<>();
+        limits.put("monthlyTokens", monthlyTokens);
+        limits.put("maxMonthlyTokens", maxMonthlyTokens);
+        limits.put("monthlyCost", monthlyCost);
+        limits.put("maxMonthlyCost", maxMonthlyCost);
+        limits.put("tokenUsagePercent", (monthlyTokens * 100.0) / maxMonthlyTokens);
+        limits.put("costUsagePercent", (monthlyCost * 100.0) / maxMonthlyCost);
+        limits.put("tokenWarning", monthlyTokens > maxMonthlyTokens * 0.9);
+        limits.put("costWarning", monthlyCost > maxMonthlyCost * 0.9);
+        
+        return limits;
+    }
+    
+    // AI Provider Management
+    @Transactional(readOnly = true)
+    public Map<String, Object> getProviderStatus() {
+        return aiProviderService.getProviderStatus();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAvailableModelsWithProviders() {
+        List<Map<String, Object>> models = new ArrayList<>();
+        Map<String, Object> providerStatus = aiProviderService.getProviderStatus();
+        
+        // OpenAI Models
+        if ((Boolean) ((Map<String, Object>) providerStatus.get("openai")).get("available")) {
+            models.add(Map.of(
+                "id", "gpt-4",
+                "name", "GPT-4",
+                "provider", "openai",
+                "description", "Most capable model for complex educational content generation",
+                "available", true,
+                "costPer1kTokens", 0.03,
+                "maxTokens", 8192,
+                "useCases", "Content generation, analysis, problem-solving"
+            ));
+            
+            models.add(Map.of(
+                "id", "gpt-4o-mini",
+                "name", "GPT-4o Mini",
+                "provider", "openai",
+                "description", "Fast and cost-effective model for educational content",
+                "available", true,
+                "costPer1kTokens", 0.00015,
+                "maxTokens", 128000,
+                "useCases", "Content generation, analysis"
+            ));
+            
+            models.add(Map.of(
+                "id", "gpt-3.5-turbo",
+                "name", "GPT-3.5 Turbo",
+                "provider", "openai",
+                "description", "Fast and efficient model for basic educational content",
+                "available", true,
+                "costPer1kTokens", 0.002,
+                "maxTokens", 16385,
+                "useCases", "Content generation, basic analysis"
+            ));
+        }
+        
+        // Anthropic Models
+        if ((Boolean) ((Map<String, Object>) providerStatus.get("anthropic")).get("available")) {
+            models.add(Map.of(
+                "id", "claude-3-opus-20240229",
+                "name", "Claude 3 Opus",
+                "provider", "anthropic",
+                "description", "Most capable Claude model for complex educational tasks",
+                "available", true,
+                "costPer1kTokens", 0.015,
+                "maxTokens", 200000,
+                "useCases", "Content generation, analysis, reasoning"
+            ));
+            
+            models.add(Map.of(
+                "id", "claude-3-sonnet-20240229",
+                "name", "Claude 3 Sonnet",
+                "provider", "anthropic",
+                "description", "Balanced Claude model for educational content",
+                "available", true,
+                "costPer1kTokens", 0.003,
+                "maxTokens", 200000,
+                "useCases", "Content generation, analysis"
+            ));
+        }
+        
+        // Google Models
+        if ((Boolean) ((Map<String, Object>) providerStatus.get("google")).get("available")) {
+            models.add(Map.of(
+                "id", "gemini-pro",
+                "name", "Gemini Pro",
+                "provider", "google",
+                "description", "Google's advanced AI model for educational content",
+                "available", true,
+                "costPer1kTokens", 0.0005,
+                "maxTokens", 30720,
+                "useCases", "Content generation, analysis, reasoning"
+            ));
+        }
+        
+        // Local AI Models
+        if ((Boolean) ((Map<String, Object>) providerStatus.get("local")).get("available")) {
+            models.add(Map.of(
+                "id", "llama2",
+                "name", "Llama 2",
+                "provider", "local",
+                "description", "Open-source model running locally",
+                "available", true,
+                "costPer1kTokens", 0.0,
+                "maxTokens", 4096,
+                "useCases", "Content generation, privacy-focused"
+            ));
+            
+            models.add(Map.of(
+                "id", "codellama",
+                "name", "Code Llama",
+                "provider", "local",
+                "description", "Specialized model for code generation and analysis",
+                "available", true,
+                "costPer1kTokens", 0.0,
+                "maxTokens", 4096,
+                "useCases", "Code generation, programming education"
+            ));
+        }
+        
+        // Mock Model (always available)
+        models.add(Map.of(
+            "id", "mock-ai",
+            "name", "Mock AI Service",
+            "provider", "mock",
+            "description", "Mock AI service for testing and development",
+            "available", true,
+            "costPer1kTokens", 0.0,
+            "maxTokens", 10000,
+            "useCases", "Content generation, testing"
+        ));
+        
+        return models;
+    }
+    
+    @Transactional
+    public void selectProviderForTeacher(Long teacherId, String provider, String model) {
+        // Store teacher's AI provider preference
+        // This could be stored in a database table or user preferences
+        System.out.println("Teacher " + teacherId + " selected provider: " + provider + ", model: " + model);
+        
+        // Log the provider selection
+        Teacher teacher = teacherService.getTeacherById(teacherId);
+        logAiUsage(teacher, "SELECT_PROVIDER", "PROVIDER_SELECTION", null, 
+                   0L, 0L, provider + "/" + model, 0, true, null);
+    }
+    
+    @Transactional(readOnly = true)
+    public Map<String, String> getTeacherSelectedProvider(Long teacherId) {
+        // For now, we'll use the default provider from configuration
+        // In a real implementation, this would be stored in the database
+        Map<String, String> providerInfo = new HashMap<>();
+        providerInfo.put("provider", "local"); // Default to local AI
+        providerInfo.put("model", "llama2");
+        return providerInfo;
+    }
+
+    @Transactional
+    public int deleteUnpublishedContent(Long teacherId) {
+        List<AiGeneratedContent> unpublishedContent = aiGeneratedContentRepository
+            .findByTeacherIdAndPublished(teacherId, false);
+        
+        int deletedCount = unpublishedContent.size();
+        
+        for (AiGeneratedContent content : unpublishedContent) {
+            // Also delete associated usage logs
+            List<AiUsageLog> usageLogs = aiUsageLogRepository.findByTeacherId(teacherId);
+            // Filter by content type manually since the repository method doesn't exist
+            usageLogs = usageLogs.stream()
+                .filter(log -> log.getContentType() != null && log.getContentType().equals(content.getType().toString()))
+                .collect(java.util.stream.Collectors.toList());
+            aiUsageLogRepository.deleteAll(usageLogs);
+            
+            // Delete the content itself
+            aiGeneratedContentRepository.delete(content);
+        }
+        
+        System.out.println("Deleted " + deletedCount + " unpublished content items for teacher " + teacherId);
+        return deletedCount;
+    }
 
     // Private helper methods
     private String generateContentWithAI(AiContentGenerationRequest request, List<AiResource> resources) {
@@ -435,33 +636,69 @@ public class AiService {
                 context.append("\nAdditional Instructions: ").append(request.getAdditionalInstructions());
             }
             
-            // Add context from uploaded resources
+            // Get subject info for context
+            Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found"));
+            
+            // Add context from uploaded resources for this specific subject
             if (!resources.isEmpty()) {
-                context.append("\n\nContext from uploaded resources:");
+                context.append("\n\nIMPORTANT: Use ONLY the following uploaded resources for ").append(subject.getName()).append(":");
+                context.append("\nYou must base your generated content strictly on these resources and stay within the subject scope.");
+                
                 for (AiResource resource : resources) {
-                    context.append("\n- ").append(resource.getType()).append(": ").append(resource.getTitle());
-                    if (resource.getDescription() != null) {
-                        context.append(" - ").append(resource.getDescription());
+                    context.append("\n\nResource: ").append(resource.getType()).append(" - ").append(resource.getTitle());
+                    if (resource.getDescription() != null && !resource.getDescription().trim().isEmpty()) {
+                        context.append("\nDescription: ").append(resource.getDescription());
                     }
+                    if (resource.getProcessingNotes() != null && !resource.getProcessingNotes().trim().isEmpty()) {
+                        context.append("\nContent Summary: ").append(resource.getProcessingNotes());
+                    }
+                    context.append("\nFile: ").append(resource.getFileName());
                 }
+                
+                context.append("\n\nINSTRUCTIONS:");
+                context.append("\n1. Generate content ONLY based on the resources listed above");
+                context.append("\n2. Stay strictly within the ").append(subject.getName()).append(" subject scope");
+                context.append("\n3. Do not include information from other subjects or general knowledge");
+                context.append("\n4. Reference the specific resources when creating questions or content");
+            } else {
+                context.append("\n\nIMPORTANT: No uploaded resources found for ").append(subject.getName()).append(".");
+                context.append("\nGenerate content based on general ").append(subject.getName()).append(" knowledge appropriate for ").append(request.getFormLevel()).append(" level.");
             }
 
-            // Try to use real AI API if configured
-            if (aiApiKey != null && !aiApiKey.trim().isEmpty()) {
-                return callOpenAIAPI(context.toString(), request.getContentType());
-            } else {
-                // Fallback to mock response
-                return generateMockResponse(context.toString(), request.getContentType());
-            }
+            // Get the selected provider for the teacher
+            // For now, we'll use the default provider from configuration
+            String selectedProvider = "local"; // Default to local AI
+            String selectedModel = "llama2";
+            
+            System.out.println("Using AI Provider: " + selectedProvider + " with model: " + selectedModel);
+            
+            // Use the AiProviderService to generate content
+            return aiProviderService.generateContent(context.toString(), request.getContentType(), selectedProvider, selectedModel);
+            
         } catch (Exception e) {
             // Log error and fallback to mock response
             System.err.println("Error calling AI API: " + e.getMessage());
-            return generateMockResponse("Error occurred, using mock response", request.getContentType());
+            
+            // Provide specific error messages based on the error type
+            String errorMessage = "Error occurred, using mock response";
+            if (e.getMessage() != null) {
+                if (e.getMessage().contains("rate limit exceeded")) {
+                    errorMessage = "AI API rate limit exceeded. Please wait a moment and try again. Using mock response for now.";
+                } else if (e.getMessage().contains("authentication failed")) {
+                    errorMessage = "AI API authentication failed. Please check your API key configuration. Using mock response for now.";
+                } else if (e.getMessage().contains("quota exceeded") || e.getMessage().contains("exceeded your current quota")) {
+                    errorMessage = "AI API quota exceeded. Please check your billing and usage limits. Using mock response for now.";
+                }
+            }
+            
+            return generateMockResponse(errorMessage, request.getContentType());
         }
     }
 
     private String callOpenAIAPI(String prompt, AiGeneratedContent.ContentType contentType) {
         try {
+            System.out.println("Building OpenAI request...");
             String systemPrompt = buildSystemPrompt(contentType);
             
             List<ChatMessage> messages = new ArrayList<>();
@@ -469,18 +706,32 @@ public class AiService {
             messages.add(new ChatMessage("user", prompt));
             
             ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model("gpt-4o-mini")
+                    .model(aiModelVersion)
                     .messages(messages)
                     .maxTokens(4000)
                     .temperature(0.7)
                     .build();
             
+            System.out.println("Calling OpenAI API with model: " + aiModelVersion);
             String response = openAiService.createChatCompletion(request)
                     .getChoices().get(0).getMessage().getContent();
             
+            System.out.println("OpenAI API call successful");
             return response;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to call OpenAI API", e);
+            System.err.println("OpenAI API call failed: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Check for specific error types
+            if (e.getMessage() != null && e.getMessage().contains("HTTP 429")) {
+                throw new RuntimeException("OpenAI API rate limit exceeded. Please wait a moment and try again.", e);
+            } else if (e.getMessage() != null && e.getMessage().contains("HTTP 401")) {
+                throw new RuntimeException("OpenAI API authentication failed. Please check your API key.", e);
+            } else if (e.getMessage() != null && (e.getMessage().contains("HTTP 402") || e.getMessage().contains("exceeded your current quota"))) {
+                throw new RuntimeException("OpenAI API quota exceeded. Please check your billing.", e);
+            } else {
+                throw new RuntimeException("Failed to call OpenAI API: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -525,13 +776,17 @@ public class AiService {
             prompt.append("Form Level: ").append(request.getFormLevel()).append("\n\n");
             prompt.append("Content:\n").append(content).append("\n\n");
             prompt.append("Please provide a detailed marking scheme with specific criteria and mark allocations.");
+            prompt.append("\n\nIMPORTANT: Create a fair and comprehensive marking scheme that aligns with educational standards.");
 
-            // Try to use real AI API if configured
-            if (aiApiKey != null && !aiApiKey.trim().isEmpty()) {
-                return callOpenAIMarkingSchemeAPI(prompt.toString());
-            } else {
-                return generateMockMarkingScheme(request, content);
-            }
+            // Use the same AI provider as the main content generation
+            String selectedProvider = "local"; // Default to local AI
+            String selectedModel = "llama2";
+            
+            System.out.println("Generating marking scheme using AI Provider: " + selectedProvider + " with model: " + selectedModel);
+            
+            // Use the AiProviderService to generate marking scheme
+            return aiProviderService.generateContent(prompt.toString(), request.getContentType(), selectedProvider, selectedModel);
+            
         } catch (Exception e) {
             System.err.println("Error generating marking scheme: " + e.getMessage());
             return generateMockMarkingScheme(request, content);
@@ -547,7 +802,7 @@ public class AiService {
             messages.add(new ChatMessage("user", prompt));
             
             ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model("gpt-4o-mini")
+                    .model(aiModelVersion)
                     .messages(messages)
                     .maxTokens(2000)
                     .temperature(0.5)
@@ -590,6 +845,32 @@ public class AiService {
         log.setRequestParameters("{}"); // Could store actual request parameters as JSON
 
         aiUsageLogRepository.save(log);
+        
+        // Check usage limits and log warnings
+        checkUsageLimits(teacher.getId(), tokensUsed, costInCents);
+    }
+    
+    private void checkUsageLimits(Long teacherId, Long tokensUsed, Integer costInCents) {
+        // Get current month usage
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        Long monthlyTokens = getTeacherTotalTokens(teacherId, startOfMonth);
+        Long monthlyCost = getTeacherTotalCost(teacherId, startOfMonth);
+        
+        // Define limits (these could be configurable)
+        long maxMonthlyTokens = 100000L; // 100K tokens per month
+        long maxMonthlyCost = 5000L; // $50 per month (in cents)
+        
+        // Check token limit
+        if (monthlyTokens > maxMonthlyTokens * 0.9) { // 90% warning
+            System.out.println("WARNING: Teacher " + teacherId + " has used " + monthlyTokens + 
+                             " tokens this month (90% of limit: " + maxMonthlyTokens + ")");
+        }
+        
+        // Check cost limit
+        if (monthlyCost > maxMonthlyCost * 0.9) { // 90% warning
+            System.out.println("WARNING: Teacher " + teacherId + " has spent $" + (monthlyCost / 100.0) + 
+                             " this month (90% of limit: $" + (maxMonthlyCost / 100.0) + ")");
+        }
     }
 
     // AI Model Configuration

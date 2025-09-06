@@ -162,6 +162,7 @@ export const ROUTES = {
   PROFILE: '/app/profile',
   SETTINGS: '/app/settings',
   AI_DASHBOARD: '/app/ai',
+  AI_PROVIDERS: '/app/ai/providers',
   AI_RESOURCES: '/app/ai/resources',
   AI_GENERATE: '/app/ai/generate',
   AI_CONTENT: '/app/ai/content',
