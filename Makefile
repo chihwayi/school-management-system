@@ -5,20 +5,28 @@ help:
 	@echo "School Management System - Docker Commands"
 	@echo ""
 	@echo "Available commands:"
-	@echo "  make start     - Start all services (production mode)"
-	@echo "  make dev       - Start all services (development mode with hot reload)"
-	@echo "  make stop      - Stop all services"
-	@echo "  make clean     - Stop and remove all containers, images, and volumes"
-	@echo "  make logs      - View logs from all services"
-	@echo "  make status    - Show status of all services"
-	@echo "  make build     - Build all Docker images"
-	@echo "  make rebuild   - Rebuild all Docker images (no cache)"
-	@echo "  make help      - Show this help message"
+	@echo "  make start       - Start all services (production mode)"
+	@echo "  make dev         - Start all services (development mode with hot reload)"
+	@echo "  make stop        - Stop all services"
+	@echo "  make clean       - Stop and remove all containers, images, and volumes"
+	@echo "  make logs        - View logs from all services"
+	@echo "  make status      - Show status of all services"
+	@echo "  make build       - Build all Docker images"
+	@echo "  make rebuild     - Rebuild all Docker images (no cache)"
+	@echo ""
+	@echo "Production commands:"
+	@echo "  make deploy-prod - Deploy to production"
+	@echo "  make backup      - Create database backup"
+	@echo "  make monitor     - Monitor system status"
+	@echo "  make logs-prod   - View production logs"
+	@echo "  make status-prod - Show production status"
+	@echo ""
+	@echo "  make help        - Show this help message"
 
 # Production mode
 start:
 	@echo "🚀 Starting School Management System in production mode..."
-	@./scripts/start.sh
+	@./scripts/deploy-prod.sh
 
 # Development mode
 dev:
@@ -104,3 +112,28 @@ git-status:
 log:
 	@echo "📝 Recent commits:"
 	@git log --oneline -10
+
+# Production deployment
+deploy-prod:
+	@echo "🚀 Deploying to production..."
+	@./scripts/deploy-prod.sh
+
+# Create database backup
+backup:
+	@echo "📦 Creating database backup..."
+	@./scripts/backup-db.sh
+
+# Monitor system
+monitor:
+	@echo "📊 Monitoring system..."
+	@./scripts/monitor.sh
+
+# Production logs
+logs-prod:
+	@echo "📋 Production logs:"
+	@docker-compose -f docker-compose.prod.yml logs -f
+
+# Production status
+status-prod:
+	@echo "🔍 Production status:"
+	@docker-compose -f docker-compose.prod.yml ps

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: school_mysql_prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./mysql/backup:/backup
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password
+    # Security: Don't expose MySQL port to host in production
+    # ports:
+    #   - "3306:3306"
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./school-management-system
+      dockerfile: Dockerfile
+    container_name: school_backend_prod
+    restart: unless-stopped
+    env_file:
+      - env.production
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - backend_uploads_prod:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Security: Don't expose backend port to host in production (use reverse proxy)
+    # ports:
+    #   - "8080:8080"
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./school-management-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=https://yourdomain.com/api
+    container_name: school_frontend_prod
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Security: Don't expose frontend port to host in production (use reverse proxy)
+    # ports:
+    #   - "3000:80"
+
+  # Nginx Reverse Proxy (Optional - can be run separately)
+  nginx:
+    image: nginx:alpine
+    container_name: school_nginx_prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mysql_prod_data:
+    driver: local
+  backend_uploads_prod:
+    driver: local
+
+networks:
+  school_network:
+    driver: bridge
