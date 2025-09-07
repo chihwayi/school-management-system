@@ -58,6 +58,9 @@ public class AiService {
     @Autowired
     private AiProviderService aiProviderService;
 
+    @Autowired
+    private AiProviderConfigService aiProviderConfigService;
+
     @Value("${app.upload.path:uploads}")
     private String uploadPath;
 
@@ -69,6 +72,12 @@ public class AiService {
 
     @Value("${app.ai.api.url:https://api.openai.com/v1/chat/completions}")
     private String aiApiUrl;
+
+    @Value("${ai.default.provider:openai}")
+    private String aiDefaultProvider;
+
+    @Value("${ai.default.model:gpt-4o-mini}")
+    private String aiDefaultModel;
 
     // AI Resource Management
     @Transactional
@@ -224,7 +233,7 @@ public class AiService {
                     .findProcessedResourcesByTeacherAndSubject(teacher.getId(), request.getSubjectId());
 
             // Generate content using AI (this would integrate with actual AI API)
-            String generatedContent = generateContentWithAI(request, processedResources);
+            String generatedContent = generateContentWithAI(request, processedResources, teacher);
             String markingScheme = request.getIncludeMarkingScheme() != null && request.getIncludeMarkingScheme() 
                     ? generateMarkingSchemeWithAI(request, generatedContent) : null;
 
@@ -405,35 +414,70 @@ public class AiService {
 
     @Transactional(readOnly = true)
     public Long getTeacherTotalTokens(Long teacherId, LocalDateTime since) {
-        return aiUsageLogRepository.getTotalTokensUsedByTeacherSince(teacherId, since);
+        try {
+            Long result = aiUsageLogRepository.getTotalTokensUsedByTeacherSince(teacherId, since);
+            return result != null ? result : 0L;
+        } catch (Exception e) {
+            System.err.println("Error getting total tokens for teacher " + teacherId + ": " + e.getMessage());
+            return 0L;
+        }
     }
 
     @Transactional(readOnly = true)
     public Long getTeacherTotalCost(Long teacherId, LocalDateTime since) {
-        return aiUsageLogRepository.getTotalCostByTeacherSince(teacherId, since);
+        try {
+            Long result = aiUsageLogRepository.getTotalCostByTeacherSince(teacherId, since);
+            return result != null ? result : 0L;
+        } catch (Exception e) {
+            System.err.println("Error getting total cost for teacher " + teacherId + ": " + e.getMessage());
+            return 0L;
+        }
     }
     
     @Transactional(readOnly = true)
     public Map<String, Object> getTeacherUsageLimits(Long teacherId) {
-        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
-        Long monthlyTokens = getTeacherTotalTokens(teacherId, startOfMonth);
-        Long monthlyCost = getTeacherTotalCost(teacherId, startOfMonth);
-        
-        // Define limits (these could be configurable)
-        long maxMonthlyTokens = 100000L; // 100K tokens per month
-        long maxMonthlyCost = 5000L; // $50 per month (in cents)
-        
-        Map<String, Object> limits = new HashMap<>();
-        limits.put("monthlyTokens", monthlyTokens);
-        limits.put("maxMonthlyTokens", maxMonthlyTokens);
-        limits.put("monthlyCost", monthlyCost);
-        limits.put("maxMonthlyCost", maxMonthlyCost);
-        limits.put("tokenUsagePercent", (monthlyTokens * 100.0) / maxMonthlyTokens);
-        limits.put("costUsagePercent", (monthlyCost * 100.0) / maxMonthlyCost);
-        limits.put("tokenWarning", monthlyTokens > maxMonthlyTokens * 0.9);
-        limits.put("costWarning", monthlyCost > maxMonthlyCost * 0.9);
-        
-        return limits;
+        try {
+            LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+            Long monthlyTokens = getTeacherTotalTokens(teacherId, startOfMonth);
+            Long monthlyCost = getTeacherTotalCost(teacherId, startOfMonth);
+            
+            // Handle null values
+            if (monthlyTokens == null) monthlyTokens = 0L;
+            if (monthlyCost == null) monthlyCost = 0L;
+            
+            // Define limits (these could be configurable)
+            long maxMonthlyTokens = 100000L; // 100K tokens per month
+            long maxMonthlyCost = 5000L; // $50 per month (in cents)
+            
+            Map<String, Object> limits = new HashMap<>();
+            limits.put("monthlyTokens", monthlyTokens);
+            limits.put("maxMonthlyTokens", maxMonthlyTokens);
+            limits.put("monthlyCost", monthlyCost);
+            limits.put("maxMonthlyCost", maxMonthlyCost);
+            limits.put("tokenUsagePercent", (monthlyTokens * 100.0) / maxMonthlyTokens);
+            limits.put("costUsagePercent", (monthlyCost * 100.0) / maxMonthlyCost);
+            limits.put("tokenWarning", monthlyTokens > maxMonthlyTokens * 0.9);
+            limits.put("costWarning", monthlyCost > maxMonthlyCost * 0.9);
+            
+            return limits;
+        } catch (Exception e) {
+            System.err.println("Error getting teacher usage limits for teacher " + teacherId + ": " + e.getMessage());
+            e.printStackTrace();
+            
+            // Return default values on error
+            Map<String, Object> limits = new HashMap<>();
+            limits.put("monthlyTokens", 0L);
+            limits.put("maxMonthlyTokens", 100000L);
+            limits.put("monthlyCost", 0L);
+            limits.put("maxMonthlyCost", 5000L);
+            limits.put("tokenUsagePercent", 0.0);
+            limits.put("costUsagePercent", 0.0);
+            limits.put("tokenWarning", false);
+            limits.put("costWarning", false);
+            limits.put("error", "Unable to retrieve usage data");
+            
+            return limits;
+        }
     }
     
     // AI Provider Management
@@ -564,12 +608,15 @@ public class AiService {
     
     @Transactional
     public void selectProviderForTeacher(Long teacherId, String provider, String model) {
-        // Store teacher's AI provider preference
-        // This could be stored in a database table or user preferences
+        // Store teacher's AI provider preference in the database
+        Teacher teacher = teacherService.getTeacherById(teacherId);
+        teacher.setAiProviderPreference(provider);
+        teacher.setAiModelPreference(model);
+        teacherService.updateTeacher(teacherId, teacher);
+        
         System.out.println("Teacher " + teacherId + " selected provider: " + provider + ", model: " + model);
         
         // Log the provider selection
-        Teacher teacher = teacherService.getTeacherById(teacherId);
         logAiUsage(teacher, "SELECT_PROVIDER", "PROVIDER_SELECTION", null, 
                    0L, 0L, provider + "/" + model, 0, true, null);
     }
@@ -609,7 +656,7 @@ public class AiService {
     }
 
     // Private helper methods
-    private String generateContentWithAI(AiContentGenerationRequest request, List<AiResource> resources) {
+    private String generateContentWithAI(AiContentGenerationRequest request, List<AiResource> resources, Teacher teacher) {
         try {
             // Build context from uploaded resources
             StringBuilder context = new StringBuilder();
@@ -666,15 +713,16 @@ public class AiService {
                 context.append("\nGenerate content based on general ").append(subject.getName()).append(" knowledge appropriate for ").append(request.getFormLevel()).append(" level.");
             }
 
-            // Get the selected provider for the teacher
-            // For now, we'll use the default provider from configuration
-            String selectedProvider = "local"; // Default to local AI
-            String selectedModel = "llama2";
+            // Get the selected provider for the teacher from their preferences
+            String selectedProvider = teacher.getAiProviderPreference() != null ? 
+                teacher.getAiProviderPreference() : aiDefaultProvider;
+            String selectedModel = teacher.getAiModelPreference() != null ? 
+                teacher.getAiModelPreference() : aiDefaultModel;
             
             System.out.println("Using AI Provider: " + selectedProvider + " with model: " + selectedModel);
             
-            // Use the AiProviderService to generate content
-            return aiProviderService.generateContent(context.toString(), request.getContentType(), selectedProvider, selectedModel);
+            // Use the AiProviderService to generate content with stored configuration
+            return aiProviderService.generateContentWithConfig(context.toString(), request.getContentType(), selectedProvider, selectedModel);
             
         } catch (Exception e) {
             // Log error and fallback to mock response
@@ -878,46 +926,61 @@ public class AiService {
     public List<com.devtech.school_management_system.dto.AiModelConfigDTO> getAvailableModels() {
         List<com.devtech.school_management_system.dto.AiModelConfigDTO> models = new ArrayList<>();
         
-        // OpenAI Models
-        models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "gpt-4", "GPT-4", "OpenAI", 
-            "Most capable model for complex educational content generation", 
-            true, 0.03, 8192, "Content generation, analysis, problem-solving"
-        ));
+        // Get configured providers from database
+        List<com.devtech.school_management_system.dto.AiProviderConfigDTO> configuredProviders = 
+            aiProviderConfigService.getConfiguredProviders();
         
-        models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "gpt-4-turbo", "GPT-4 Turbo", "OpenAI", 
-            "Faster and more cost-effective version of GPT-4", 
-            true, 0.01, 128000, "Content generation, analysis, problem-solving"
-        ));
-        
-        models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "gpt-3.5-turbo", "GPT-3.5 Turbo", "OpenAI", 
-            "Fast and efficient model for basic educational content", 
-            true, 0.002, 16385, "Content generation, basic analysis"
-        ));
-        
-        // Claude Models (if available)
-        models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "claude-3-opus", "Claude 3 Opus", "Anthropic", 
-            "Most capable Claude model for complex educational tasks", 
-            false, 0.015, 200000, "Content generation, analysis, reasoning"
-        ));
-        
-        models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "claude-3-sonnet", "Claude 3 Sonnet", "Anthropic", 
-            "Balanced Claude model for educational content", 
-            false, 0.003, 200000, "Content generation, analysis"
-        ));
-        
-        // Mock Model for testing
-        models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "mock-ai", "Mock AI Service", "Internal", 
-            "Mock AI service for testing and development", 
-            true, 0.0, 10000, "Content generation, testing"
-        ));
+        for (com.devtech.school_management_system.dto.AiProviderConfigDTO provider : configuredProviders) {
+            // Add the default model for each configured provider
+            models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
+                provider.getDefaultModel(), 
+                getModelDisplayName(provider.getDefaultModel()), 
+                provider.getDisplayName(), 
+                provider.getDescription(), 
+                true, 
+                provider.getCostPer1kTokens() != null ? provider.getCostPer1kTokens() : 0.0, 
+                provider.getMaxTokens() != null ? provider.getMaxTokens() : 4000, 
+                provider.getUseCases()
+            ));
+            
+            // Add additional models based on provider
+            addAdditionalModelsForProvider(models, provider);
+        }
         
         return models;
+    }
+    
+    private void addAdditionalModelsForProvider(List<com.devtech.school_management_system.dto.AiModelConfigDTO> models, 
+                                              com.devtech.school_management_system.dto.AiProviderConfigDTO provider) {
+        String providerName = provider.getProviderName();
+        
+        if ("openai".equals(providerName)) {
+            // Add other OpenAI models if OpenAI is configured
+            models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
+                "gpt-4", "GPT-4", "OpenAI", 
+                "Most capable model for complex educational content generation", 
+                true, 0.03, 8192, "Content generation, analysis, problem-solving"
+            ));
+            models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
+                "gpt-3.5-turbo", "GPT-3.5 Turbo", "OpenAI", 
+                "Fast and efficient model for educational content", 
+                true, 0.0015, 4000, "Content generation, analysis"
+            ));
+        } else if ("anthropic".equals(providerName)) {
+            // Add other Anthropic models if Anthropic is configured
+            models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
+                "claude-3-haiku-20240307", "Claude 3 Haiku", "Anthropic", 
+                "Fast and efficient Claude model", 
+                true, 0.00025, 4000, "Quick content generation, analysis"
+            ));
+        } else if ("local".equals(providerName)) {
+            // Add other local models if local AI is configured
+            models.add(new com.devtech.school_management_system.dto.AiModelConfigDTO(
+                "llama3", "Llama 3", "Local AI", 
+                "Local AI model running on Ollama - Privacy-focused", 
+                true, 0.0, 4000, "Content generation, analysis, problem-solving (offline)"
+            ));
+        }
     }
 
     @Transactional
@@ -940,12 +1003,108 @@ public class AiService {
 
     @Transactional(readOnly = true)
     public com.devtech.school_management_system.dto.AiModelConfigDTO getCurrentModelForTeacher(Long teacherId) {
-        // In a real implementation, you would retrieve this from the database
-        // For now, return the default model
+        // Get the teacher's stored preferences, fallback to default configuration
+        Teacher teacher = teacherService.getTeacherById(teacherId);
+        String currentProvider = teacher.getAiProviderPreference() != null ? 
+            teacher.getAiProviderPreference() : aiDefaultProvider;
+        String currentModel = teacher.getAiModelPreference() != null ? 
+            teacher.getAiModelPreference() : aiDefaultModel;
+        
+        // Map provider names to display names
+        String providerDisplayName = getProviderDisplayName(currentProvider);
+        String modelDisplayName = getModelDisplayName(currentModel);
+        
+        // Get model details based on provider
+        String description = getModelDescription(currentProvider, currentModel);
+        double costPer1kTokens = getModelCost(currentProvider, currentModel);
+        int maxTokens = getModelMaxTokens(currentProvider, currentModel);
+        String useCases = getModelUseCases(currentProvider, currentModel);
+        
         return new com.devtech.school_management_system.dto.AiModelConfigDTO(
-            "gpt-4", "GPT-4", "OpenAI", 
-            "Most capable model for complex educational content generation", 
-            true, 0.03, 8192, "Content generation, analysis, problem-solving"
+            currentModel, modelDisplayName, currentProvider, 
+            description, true, costPer1kTokens, maxTokens, useCases
         );
+    }
+    
+    private String getProviderDisplayName(String provider) {
+        switch (provider.toLowerCase()) {
+            case "openai": return "OpenAI";
+            case "anthropic": return "Anthropic";
+            case "google": return "Google";
+            case "azure-openai": return "Azure OpenAI";
+            case "huggingface": return "Hugging Face";
+            case "local": return "Local AI";
+            case "mock": return "Mock AI";
+            default: return provider.toUpperCase();
+        }
+    }
+    
+    private String getModelDisplayName(String model) {
+        switch (model.toLowerCase()) {
+            case "gpt-4o-mini": return "GPT-4o Mini";
+            case "gpt-4": return "GPT-4";
+            case "gpt-3.5-turbo": return "GPT-3.5 Turbo";
+            case "claude-3-sonnet-20240229": return "Claude 3 Sonnet";
+            case "claude-3-haiku-20240307": return "Claude 3 Haiku";
+            case "gemini-pro": return "Gemini Pro";
+            case "llama2": return "Llama 2";
+            case "llama3": return "Llama 3";
+            default: return model.toUpperCase();
+        }
+    }
+    
+    private String getModelDescription(String provider, String model) {
+        if ("local".equals(provider)) {
+            return "Local AI model running on Ollama - Privacy-focused, offline-capable";
+        } else if ("openai".equals(provider)) {
+            return "OpenAI's advanced language model for educational content generation";
+        } else if ("anthropic".equals(provider)) {
+            return "Anthropic's Claude model for safe and helpful AI assistance";
+        } else if ("google".equals(provider)) {
+            return "Google's Gemini model for multimodal AI capabilities";
+        }
+        return "AI model for educational content generation";
+    }
+    
+    private double getModelCost(String provider, String model) {
+        if ("local".equals(provider)) {
+            return 0.0; // Free for local models
+        } else if ("openai".equals(provider)) {
+            if ("gpt-4o-mini".equals(model)) return 0.00015;
+            if ("gpt-4".equals(model)) return 0.03;
+            return 0.0015; // Default for other OpenAI models
+        } else if ("anthropic".equals(provider)) {
+            return 0.003; // Default for Claude models
+        } else if ("google".equals(provider)) {
+            return 0.0005; // Default for Gemini models
+        }
+        return 0.0;
+    }
+    
+    private int getModelMaxTokens(String provider, String model) {
+        if ("local".equals(provider)) {
+            return 4000; // Default for local models
+        } else if ("openai".equals(provider)) {
+            if ("gpt-4".equals(model)) return 8192;
+            return 4000; // Default for other OpenAI models
+        } else if ("anthropic".equals(provider)) {
+            return 4000; // Default for Claude models
+        } else if ("google".equals(provider)) {
+            return 4000; // Default for Gemini models
+        }
+        return 4000;
+    }
+    
+    private String getModelUseCases(String provider, String model) {
+        if ("local".equals(provider)) {
+            return "Content generation, analysis, problem-solving (offline)";
+        } else if ("openai".equals(provider)) {
+            return "Content generation, analysis, problem-solving";
+        } else if ("anthropic".equals(provider)) {
+            return "Safe content generation, analysis, reasoning";
+        } else if ("google".equals(provider)) {
+            return "Multimodal content generation, analysis";
+        }
+        return "Content generation, analysis, problem-solving";
     }
 }

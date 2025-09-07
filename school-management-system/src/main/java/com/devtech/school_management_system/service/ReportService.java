@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -444,5 +445,91 @@ public class ReportService {
         }
 
         return result.toString();
+    }
+
+    // Get all reports for a specific student
+    public List<StudentReportDTO> getReportsByStudent(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
+        
+        List<Report> reports = reportRepository.findByStudentId(studentId);
+        
+        return reports.stream()
+                .map(report -> {
+                    StudentReportDTO dto = new StudentReportDTO();
+                    dto.setId(report.getId());
+                    dto.setStudentId(studentId);
+                    dto.setStudentName(student.getFirstName() + " " + student.getLastName());
+                    dto.setForm(student.getForm());
+                    dto.setSection(student.getSection());
+                    dto.setTerm(report.getTerm());
+                    dto.setAcademicYear(report.getAcademicYear());
+                    dto.setFinalized(report.isFinalized());
+                    dto.setOverallComment(report.getOverallComment());
+                    dto.setClassTeacherSignatureUrl(report.getClassTeacherSignatureUrl());
+                    
+                    // Get subject reports for this report
+                    List<SubjectReport> subjectReports = subjectReportRepository.findByReportId(report.getId());
+                    List<SubjectReportDTO> subjectReportDTOs = subjectReports.stream()
+                            .map(this::convertToSubjectReportDTO)
+                            .collect(Collectors.toList());
+                    dto.setSubjectReports(subjectReportDTOs);
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // Get a specific report by ID
+    public StudentReportDTO getReportById(Long reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found with id: " + reportId));
+        
+        Student student = report.getStudent();
+        
+        StudentReportDTO dto = new StudentReportDTO();
+        dto.setId(report.getId());
+        dto.setStudentId(student.getId());
+        dto.setStudentName(student.getFirstName() + " " + student.getLastName());
+        dto.setForm(student.getForm());
+        dto.setSection(student.getSection());
+        dto.setTerm(report.getTerm());
+        dto.setAcademicYear(report.getAcademicYear());
+        dto.setFinalized(report.isFinalized());
+        dto.setOverallComment(report.getOverallComment());
+        dto.setClassTeacherSignatureUrl(report.getClassTeacherSignatureUrl());
+        
+        // Get subject reports for this report
+        List<SubjectReport> subjectReports = subjectReportRepository.findByReportId(report.getId());
+        List<SubjectReportDTO> subjectReportDTOs = subjectReports.stream()
+                .map(this::convertToSubjectReportDTO)
+                .collect(Collectors.toList());
+        dto.setSubjectReports(subjectReportDTOs);
+        
+        return dto;
+    }
+
+    // Generate PDF URL for a report (placeholder implementation)
+    public String generateReportPdf(Long reportId) {
+        // For now, return a placeholder URL that can be viewed in browser
+        // In a real implementation, this would generate an actual PDF file
+        return "data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsO8CjIgMCBvYmoKPDwKL0xlbmd0aCAzIDAgUgovVHlwZSAvUGFnZQo+PgpzdHJlYW0KJVBERi0xLjQKJcOkw7zDtsO8CjIgMCBvYmoKPDwKL0xlbmd0aCAzIDAgUgovVHlwZSAvUGFnZQo+PgpzdHJlYW0K";
+    }
+
+    private SubjectReportDTO convertToSubjectReportDTO(SubjectReport subjectReport) {
+        SubjectReportDTO dto = new SubjectReportDTO();
+        dto.setId(subjectReport.getId());
+        dto.setSubjectId(subjectReport.getSubject().getId());
+        dto.setSubjectName(subjectReport.getSubject().getName());
+        dto.setSubjectCode(subjectReport.getSubject().getCode());
+        dto.setFinalMark(subjectReport.getTotalMark());
+        dto.setComment(subjectReport.getTeacherComment());
+        dto.setTeacherSignatureUrl(subjectReport.getTeacherSignatureUrl());
+        
+        // Set coursework and exam marks from the subject report
+        dto.setCourseworkMark(subjectReport.getCourseworkMark());
+        dto.setExamMark(subjectReport.getExamMark());
+        
+        return dto;
     }
 }

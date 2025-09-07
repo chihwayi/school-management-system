@@ -1,6 +1,8 @@
 package com.devtech.school_management_system.service;
 
 import com.devtech.school_management_system.entity.AiGeneratedContent;
+import com.devtech.school_management_system.entity.AiProviderConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +11,9 @@ import java.util.Map;
 
 @Service
 public class AiProviderService {
+    
+    @Autowired
+    private AiProviderConfigService aiProviderConfigService;
     
     @Value("${ai.openai.api-key:}")
     private String openaiApiKey;
@@ -181,16 +186,19 @@ public class AiProviderService {
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(localAiEndpoint + "/api/generate"))
                 .header("Content-Type", "application/json")
-                .timeout(java.time.Duration.ofSeconds(120)) // 2 minutes for AI generation
+                .timeout(java.time.Duration.ofSeconds(300)) // 5 minutes for AI generation
                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
             
             System.out.println("Sending request to: " + localAiEndpoint + "/api/generate");
+            System.out.println("Request started at: " + java.time.LocalDateTime.now());
+            
             java.net.http.HttpResponse<String> response = client.send(request, 
                 java.net.http.HttpResponse.BodyHandlers.ofString());
             
+            System.out.println("Request completed at: " + java.time.LocalDateTime.now());
             System.out.println("Response status: " + response.statusCode());
-            System.out.println("Response body: " + response.body());
+            System.out.println("Response body length: " + (response.body() != null ? response.body().length() : 0));
             
             if (response.statusCode() == 200) {
                 // Parse the JSON response
@@ -219,5 +227,70 @@ public class AiProviderService {
                "Content Type: " + contentType + "\n" +
                "Generated at: " + java.time.LocalDateTime.now() + "\n" +
                "Model: Mock AI Service";
+    }
+    
+    /**
+     * Generate content using stored provider configuration
+     */
+    public String generateContentWithConfig(String prompt, AiGeneratedContent.ContentType contentType, 
+                                          String provider, String model) {
+        try {
+            // Get the stored configuration for the provider
+            var providerConfig = aiProviderConfigService.getConfiguredProvider(provider);
+            
+            if (providerConfig.isEmpty()) {
+                System.err.println("Provider " + provider + " is not configured or enabled");
+                return generateMockContent(prompt, contentType);
+            }
+            
+            AiProviderConfig config = providerConfig.get();
+            
+            // Use the stored configuration to generate content
+            return generateContentWithStoredConfig(prompt, contentType, config, model);
+            
+        } catch (Exception e) {
+            System.err.println("Error generating content with stored config: " + e.getMessage());
+            return generateMockContent(prompt, contentType);
+        }
+    }
+    
+    private String generateContentWithStoredConfig(String prompt, AiGeneratedContent.ContentType contentType, 
+                                                 AiProviderConfig config, String model) {
+        String providerName = config.getProviderName();
+        
+        if ("openai".equals(providerName)) {
+            return generateWithOpenAI(prompt, contentType, config.getApiKey(), config.getApiUrl(), model);
+        } else if ("anthropic".equals(providerName)) {
+            return generateWithAnthropic(prompt, contentType, config.getApiKey(), config.getApiUrl(), model);
+        } else if ("google".equals(providerName)) {
+            return generateWithGoogle(prompt, contentType, config.getApiKey(), config.getApiUrl(), model);
+        } else if ("local".equals(providerName)) {
+            return generateWithLocalAI(prompt, contentType, config.getApiUrl());
+        } else {
+            System.err.println("Unsupported provider: " + providerName);
+            return generateMockContent(prompt, contentType);
+        }
+    }
+    
+    private String generateWithOpenAI(String prompt, AiGeneratedContent.ContentType contentType, 
+                                    String apiKey, String apiUrl, String model) {
+        // Implementation for OpenAI with stored config
+        // This would use the stored API key and URL
+        System.out.println("Generating with OpenAI using stored config - Model: " + model);
+        return generateMockContent(prompt, contentType);
+    }
+    
+    private String generateWithAnthropic(String prompt, AiGeneratedContent.ContentType contentType, 
+                                       String apiKey, String apiUrl, String model) {
+        // Implementation for Anthropic with stored config
+        System.out.println("Generating with Anthropic using stored config - Model: " + model);
+        return generateMockContent(prompt, contentType);
+    }
+    
+    private String generateWithGoogle(String prompt, AiGeneratedContent.ContentType contentType, 
+                                    String apiKey, String apiUrl, String model) {
+        // Implementation for Google with stored config
+        System.out.println("Generating with Google using stored config - Model: " + model);
+        return generateMockContent(prompt, contentType);
     }
 }

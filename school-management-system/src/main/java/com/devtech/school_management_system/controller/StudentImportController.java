@@ -1,5 +1,7 @@
 package com.devtech.school_management_system.controller;
 
+import com.devtech.school_management_system.entity.Student;
+import com.devtech.school_management_system.repository.StudentRepository;
 import com.devtech.school_management_system.service.StudentImportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -10,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,6 +21,9 @@ public class StudentImportController {
 
     @Autowired
     private StudentImportService studentImportService;
+    
+    @Autowired
+    private StudentRepository studentRepository;
 
     @GetMapping("/template")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK')")
@@ -43,5 +49,11 @@ public class StudentImportController {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Import failed: " + e.getMessage()));
         }
+    }
+
+    @GetMapping("/form/{form}/section/{section}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_CLERK', 'ROLE_TEACHER')")
+    public List<Student> getStudentsByFormAndSection(@PathVariable String form, @PathVariable String section) {
+        return studentRepository.findByFormAndSection(form, section);
     }
 }

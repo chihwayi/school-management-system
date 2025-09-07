@@ -29,6 +29,12 @@ public class Teacher {
     @Column(name = "signature_url")
     private String signatureUrl;
 
+    @Column(name = "ai_provider_preference")
+    private String aiProviderPreference;
+
+    @Column(name = "ai_model_preference")
+    private String aiModelPreference;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @JsonIgnoreProperties({"teacher"})
@@ -66,6 +72,12 @@ public class Teacher {
 
     public String getSignatureUrl() { return signatureUrl; }
     public void setSignatureUrl(String signatureUrl) { this.signatureUrl = signatureUrl; }
+
+    public String getAiProviderPreference() { return aiProviderPreference; }
+    public void setAiProviderPreference(String aiProviderPreference) { this.aiProviderPreference = aiProviderPreference; }
+
+    public String getAiModelPreference() { return aiModelPreference; }
+    public void setAiModelPreference(String aiModelPreference) { this.aiModelPreference = aiModelPreference; }
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }

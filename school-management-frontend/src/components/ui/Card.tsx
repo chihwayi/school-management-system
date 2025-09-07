@@ -18,6 +18,11 @@ interface CardContentProps {
   className?: string;
 }
 
+interface CardTitleProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
 interface CardFooterProps {
   children: React.ReactNode;
   className?: string;
@@ -35,6 +40,10 @@ const CardContent: React.FC<CardContentProps> = ({ children, className }) => (
   <div className={cn('', className)}>{children}</div>
 );
 
+const CardTitle: React.FC<CardTitleProps> = ({ children, className }) => (
+  <h3 className={cn('text-lg font-semibold text-gray-900', className)}>{children}</h3>
+);
+
 const CardFooter: React.FC<CardFooterProps> = ({ children, className }) => (
   <div className={cn('mt-4 pt-4 border-t border-gray-200', className)}>{children}</div>
 );
@@ -43,6 +52,7 @@ const CardFooter: React.FC<CardFooterProps> = ({ children, className }) => (
 type CardComponent = React.FC<CardProps> & {
   Header: typeof CardHeader;
   Content: typeof CardContent;
+  Title: typeof CardTitle;
   Footer: typeof CardFooter;
 };
 
@@ -63,6 +73,8 @@ const Card: CardComponent = ({ children, className, padding = 'md' }) => {
 
 Card.Header = CardHeader;
 Card.Content = CardContent;
+Card.Title = CardTitle;
 Card.Footer = CardFooter;
 
 export default Card;
+export { CardHeader, CardContent, CardTitle, CardFooter };

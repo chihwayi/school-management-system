@@ -14,11 +14,9 @@ export interface PaymentRecord {
   term: string;
   month: string;
   academicYear: string;
-  monthlyFeeAmount: number;
-  amountPaid: number;
-  balance: number;
-  paymentStatus: string;
-  paymentDate: string;
+  amount: number;
+  status: string;
+  date: string;
 }
 
 export const studentFinanceService = {

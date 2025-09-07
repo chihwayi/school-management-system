@@ -28,7 +28,6 @@ import { Card, Button } from '../../components/ui';
 import  LoadingSpinner  from '../../components/common/LoadingSpinner';
 import MinistryLogoUpload from '../../components/admin/MinistryLogoUpload';
 import SignatureUpload from '../../components/signatures/SignatureUpload';
-import TestPDF from '../../components/reports/TestPDF';
 import { studentService } from '../../services/studentService';
 import { teacherService } from '../../services/teacherService';
 import { subjectService } from '../../services/subjectService';
@@ -62,22 +61,22 @@ const AdminDashboard: React.FC = () => {
   // Fetch dashboard data
   const { data: students, isLoading: studentsLoading } = useQuery({
     queryKey: ['students'],
-    queryFn: studentService.getAllStudents,
+    queryFn: () => studentService.getAllStudents(),
   });
 
   const { data: teachers, isLoading: teachersLoading } = useQuery({
     queryKey: ['teachers'],
-    queryFn: teacherService.getAllTeachers,
+    queryFn: () => teacherService.getAllTeachers(),
   });
 
   const { data: subjects, isLoading: subjectsLoading } = useQuery({
     queryKey: ['subjects'],
-    queryFn: subjectService.getAllSubjects,
+    queryFn: () => subjectService.getAllSubjects(),
   });
 
   const { data: classes, isLoading: classesLoading } = useQuery({
     queryKey: ['classes'],
-    queryFn: classService.getAllClassGroups,
+    queryFn: () => classService.getAllClassGroups(),
   });
 
   const isLoading = studentsLoading || teachersLoading || subjectsLoading || classesLoading;
@@ -431,12 +430,6 @@ const AdminDashboard: React.FC = () => {
         <MinistryLogoUpload />
         <SignatureUpload />
       </div>
-
-      {/* PDF Test Section */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">PDF Generation Test</h3>
-        <TestPDF />
-      </Card>
 
       {/* Recent Activity Section */}
       <Card className="p-6">

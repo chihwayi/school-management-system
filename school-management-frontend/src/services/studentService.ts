@@ -1,100 +1,110 @@
 import api from './api';
-import type { Student, StudentRegistrationDTO, StudentUpdateDTO, StudentSubject, PromotionToALevelDTO, Subject } from '../types';
+
+export interface StudentReport {
+  id: number;
+  studentId: number;
+  studentName: string;
+  form: string;
+  section: string;
+  term: string;
+  academicYear: string;
+  overallComment: string;
+  finalized: boolean;
+  classTeacherSignatureUrl?: string;
+  subjectReports: StudentSubjectReport[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface StudentSubjectReport {
+  id: number;
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
+  courseworkMark?: number;
+  examMark?: number;
+  finalMark?: number;
+  comment: string;
+  teacherSignatureUrl?: string;
+  assessments?: StudentAssessment[];
+}
+
+export interface StudentAssessment {
+  id: number;
+  type: string;
+  title: string;
+  date: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+}
+
+export interface StudentFinance {
+  studentId: number;
+  totalPaid: number;
+  totalBalance: number;
+  isFeesPaid: boolean;
+  paymentHistory: StudentPayment[];
+}
+
+export interface StudentPayment {
+  id: number;
+  term: string;
+  month: string;
+  academicYear: string;
+  monthlyFeeAmount: number;
+  amountPaid: number;
+  balance: number;
+  paymentDate: string;
+  paymentStatus: string;
+}
 
 export const studentService = {
-  getAllStudents: async (): Promise<Student[]> => {
-    const response = await api.get('/students/all');
+  // Get all students
+  async getAllStudents(): Promise<any[]> {
+    const response = await api.get('/student/all');
     return response.data;
   },
 
-  getStudentById: async (id: number): Promise<Student> => {
+  // Get student by ID
+  async getStudentById(id: number): Promise<any> {
     const response = await api.get(`/students/${id}`);
     return response.data;
   },
 
-  createStudent: async (studentData: StudentRegistrationDTO): Promise<Student> => {
-    const response = await api.post('/students/create', studentData);
+  // Get student reports (only finalized reports if fees are paid)
+  async getStudentReports(studentId: number): Promise<StudentReport[]> {
+    const response = await api.get(`/student/reports/${studentId}`);
     return response.data;
   },
 
-  updateStudent: async (id: number, studentData: StudentUpdateDTO): Promise<Student> => {
-    const response = await api.put(`/students/${id}`, studentData);
+  // Get student finance status
+  async getStudentFinance(studentId: number): Promise<StudentFinance> {
+    const response = await api.get(`/student/finance/${studentId}`);
     return response.data;
   },
 
-  deleteStudent: async (id: number): Promise<void> => {
-    await api.delete(`/students/${id}`);
-  },
-
-  downloadTemplate: async (): Promise<Blob> => {
-    const response = await api.get('/students/template', {
-      responseType: 'blob'
-    });
+  // Get report PDF URL
+  async getReportPdf(reportId: number): Promise<string> {
+    const response = await api.get(`/reports/${reportId}/pdf`);
     return response.data;
   },
 
-  importStudents: async (file: File): Promise<any> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await api.post('/students/import', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+  // Get student profile by mobile number
+  async getStudentProfile(mobileNumber: string): Promise<any> {
+    const response = await api.get(`/student/profile?mobileNumber=${encodeURIComponent(mobileNumber)}`);
     return response.data;
   },
 
-  getStudentsByClass: async (form: string, section: string): Promise<Student[]> => {
-    const response = await api.get(`/students/form/${form}/section/${section}`);
+  // Get student reports by mobile number
+  async getStudentReportsByMobile(mobileNumber: string): Promise<StudentReport[]> {
+    const response = await api.get(`/student/reports?mobileNumber=${encodeURIComponent(mobileNumber)}`);
     return response.data;
   },
 
-  assignSubjectToStudent: async (studentId: number, subjectId: number): Promise<StudentSubject> => {
-    const response = await api.post(`/students/${studentId}/assign-subject/${subjectId}`);
+  // Get student finance by mobile number
+  async getStudentFinanceByMobile(mobileNumber: string): Promise<StudentFinance> {
+    const response = await api.get(`/student/finance?mobileNumber=${encodeURIComponent(mobileNumber)}`);
     return response.data;
-  },
-
-  removeSubjectFromStudent: async (studentId: number, subjectId: number): Promise<void> => {
-    await api.delete(`/students/${studentId}/remove-subject/${subjectId}`);
-  },
-
-  getStudentSubjects: async (studentId: number): Promise<Subject[]> => {
-    const response = await api.get(`/students/${studentId}/subjects`);
-    return response.data;
-  },
-
-  advanceStudentsToNextForm: async (studentIds: number[]): Promise<Student[]> => {
-    const response = await api.post('/students/batch/advance-form', studentIds);
-    return response.data;
-  },
-
-  promoteStudentsToALevel: async (promotionData: PromotionToALevelDTO): Promise<Student[]> => {
-    const response = await api.post('/students/batch/promote-to-a-level', promotionData);
-    return response.data;
-  },
-
-  bulkAssignSubjectsToClass: async (form: string, section: string, subjectIds: number[]): Promise<void> => {
-    const response = await api.post('/students/bulk-assign-subjects', {
-      form,
-      section,
-      subjectIds
-    });
-    return response.data;
-  },
-
-  // Hybrid assignment method - handles single, bulk class, and bulk custom assignments
-  assignSubjects: async (assignmentData: {
-    studentIds?: number[];
-    subjectIds: number[];
-    form?: string;
-    section?: string;
-    academicYear?: string;
-    assignmentType: 'SINGLE' | 'BULK_CLASS' | 'BULK_CUSTOM';
-  }): Promise<StudentSubject[]> => {
-    const response = await api.post('/students/assign-subjects', assignmentData);
-    return response.data;
-  },
-
-
+  }
 };

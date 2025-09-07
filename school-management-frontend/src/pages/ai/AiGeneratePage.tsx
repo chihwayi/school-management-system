@@ -25,6 +25,7 @@ import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../hooks/useAuth';
 import { aiService } from '../../services/aiService';
 import { subjectService } from '../../services/subjectService';
+import { teacherService } from '../../services/teacherService';
 import { FORMS } from '../../types';
 // Temporary type definitions to fix the import issue
 enum ContentType {
@@ -124,7 +125,7 @@ const AiGeneratePage: React.FC = () => {
       try {
         const [contentData, subjectsData] = await Promise.all([
           aiService.getTeacherGeneratedContent(),
-          subjectService.getAllSubjects()
+          teacherService.getAssignedSubjects()
         ]);
         setGeneratedContent(contentData);
         setSubjects(subjectsData);

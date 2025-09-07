@@ -141,6 +141,25 @@ export const teacherService = {
     return response.data;
   },
 
+  getAssignedSubjects: async (): Promise<{ id: number; name: string; code: string }[]> => {
+    const assignments = await teacherService.getAssignedSubjectsAndClasses();
+    
+    // Extract unique subjects from assignments
+    const uniqueSubjects = new Map<number, { id: number; name: string; code: string }>();
+    
+    assignments.forEach(assignment => {
+      if (assignment.subjectId && assignment.subjectName && assignment.subjectCode) {
+        uniqueSubjects.set(assignment.subjectId, {
+          id: assignment.subjectId,
+          name: assignment.subjectName,
+          code: assignment.subjectCode
+        });
+      }
+    });
+    
+    return Array.from(uniqueSubjects.values());
+  },
+
   getSupervisedClasses: async (): Promise<SupervisedClass[]> => {
     const response = await api.get('/teachers/supervised-classes');
     return response.data;

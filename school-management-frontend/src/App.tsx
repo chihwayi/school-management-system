@@ -27,6 +27,7 @@ import ParentChildrenPage from './pages/parent/ParentChildrenPage';
 import ParentFinancePage from './pages/parent/ParentFinancePage';
 import ParentReportsPage from './pages/parent/ParentReportsPage';
 import ParentProfilePage from './pages/parent/ParentProfilePage';
+import ParentAttendancePage from './pages/parent/ParentAttendancePage';
 
 // Management Pages
 import { StudentsPage, StudentDetailPage, StudentSubjectAssignmentPage } from './pages/students';
@@ -43,6 +44,7 @@ import { GuardiansPage, GuardianDetailPage } from './pages/guardians';
 import { FeePaymentPage, PaymentStatusPage, FinancialReportsPage, FeeSettingsPage } from './pages/fees';
 import SectionsPage from './pages/sections/SectionsPage';
 import { UserManagementPage } from './pages/users';
+import AiProviderConfigPage from './pages/admin/AiProviderConfigPage';
 
 // AI Pages
 import { 
@@ -208,6 +210,9 @@ const App: React.FC = () => {
                 {/* User Management */}
                 <Route path="users" element={<UserManagementPage />} />
 
+                {/* Admin AI Provider Configuration */}
+                <Route path="admin/ai-providers" element={<ProtectedRoute element={<AiProviderConfigPage />} roles={['ROLE_ADMIN']} />} />
+
                 {/* AI Assistant Routes - Only for Teachers */}
                 <Route path="ai" element={<ProtectedRoute element={<AiDashboardPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
                 <Route path="ai/providers" element={<ProtectedRoute element={<AiProvidersPage />} roles={['ROLE_TEACHER', 'ROLE_CLASS_TEACHER']} />} />
@@ -234,6 +239,7 @@ const App: React.FC = () => {
               <Route path="/parent/children" element={<ParentChildrenPage />} />
               <Route path="/parent/finance/:childId" element={<ParentFinancePage />} />
               <Route path="/parent/reports/:childId" element={<ParentReportsPage />} />
+              <Route path="/parent/attendance/:childId" element={<ParentAttendancePage />} />
               <Route path="/parent/profile/:childId" element={<ParentProfilePage />} />
 
               {/* Catch all - redirect to dashboard */}

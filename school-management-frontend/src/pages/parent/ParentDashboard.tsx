@@ -10,9 +10,13 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  User
+  User,
+  BarChart3,
+  Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import StudentReports from '../../components/parent/StudentReports';
+import AttendanceSummary from '../../components/parent/AttendanceSummary';
 
 interface ParentInfo {
   id: number;
@@ -292,58 +296,23 @@ const ParentDashboard: React.FC = () => {
               </div>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Available Reports */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Available Reports</h2>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/parent/reports/${selectedChild.id}`)}
-                  >
-                    View All
-                  </Button>
-                </div>
-                
-                {availableReports.length === 0 ? (
-                  <div className="text-center py-4">
-                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No reports available</p>
-                    {(() => {
-                      const childFinancialData = childrenFinancialData.find(data => data?.studentId === selectedChild.id);
-                      const isFeesPaid = childFinancialData?.isFeesPaid || false;
-                      
-                      return !isFeesPaid ? (
-                        <p className="text-sm text-red-500 mt-2">
-                          Please pay fees to access reports
-                        </p>
-                      ) : null;
-                    })()}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {availableReports.slice(0, 5).map((report) => (
-                      <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {report.term} Report - {report.academicYear}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Overall Grade: {report.overallGrade}
-                          </p>
-                        </div>
-                        <Button 
-                          size="sm"
-                          onClick={() => navigate(`/parent/reports/${selectedChild.id}/${report.id}`)}
-                        >
-                          View
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+            {/* Student Reports and Attendance */}
+            <div className="space-y-8">
+              {/* Student Reports */}
+              <StudentReports
+                studentId={selectedChild.id}
+                studentName={selectedChild.name}
+                isFeesPaid={(() => {
+                  const childFinancialData = childrenFinancialData.find(data => data?.studentId === selectedChild.id);
+                  return childFinancialData?.isFeesPaid || false;
+                })()}
+              />
+
+              {/* Attendance Summary */}
+              <AttendanceSummary
+                studentId={selectedChild.id}
+                studentName={selectedChild.name}
+              />
 
               {/* Financial Summary */}
               <Card className="p-6">
@@ -399,7 +368,7 @@ const ParentDashboard: React.FC = () => {
                             <p className="text-sm text-red-700">
                               <AlertCircle className="h-4 w-4 inline mr-1" />
                               Outstanding balance of ${balance.toFixed(2)}. 
-                              Please settle to access reports.
+                              Please settle to access reports and attendance data.
                             </p>
                           </div>
                         )}
@@ -415,7 +384,7 @@ const ParentDashboard: React.FC = () => {
         {/* Quick Actions */}
         <Card className="p-6 mt-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Button
               variant="outline"
               className="h-16 flex flex-col items-center justify-center"
@@ -433,6 +402,16 @@ const ParentDashboard: React.FC = () => {
             >
               <FileText className="h-6 w-6 mb-2" />
               <span>View Reports</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-16 flex flex-col items-center justify-center"
+              onClick={() => selectedChild && navigate(`/parent/attendance/${selectedChild.id}`)}
+              disabled={!selectedChild}
+            >
+              <BarChart3 className="h-6 w-6 mb-2" />
+              <span>Attendance Details</span>
             </Button>
             
             <Button

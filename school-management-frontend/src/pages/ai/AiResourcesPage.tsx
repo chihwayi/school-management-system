@@ -22,6 +22,7 @@ import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../hooks/useAuth';
 import { aiService } from '../../services/aiService';
 import { subjectService } from '../../services/subjectService';
+import { teacherService } from '../../services/teacherService';
 import { FORMS } from '../../types';
 // Temporary type definitions to fix the import issue
 enum ResourceType {
@@ -126,7 +127,7 @@ const AiResourcesPage: React.FC = () => {
       try {
         const [resourcesData, subjectsData] = await Promise.all([
           aiService.getTeacherResources(),
-          subjectService.getAllSubjects()
+          teacherService.getAssignedSubjects()
         ]);
         setResources(resourcesData);
         setSubjects(subjectsData);

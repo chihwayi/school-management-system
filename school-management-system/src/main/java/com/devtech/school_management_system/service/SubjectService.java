@@ -49,6 +49,10 @@ public class SubjectService {
         return subjectRepository.findByLevel(level);
     }
 
+    public List<Subject> getSubjectsByStudentId(Long studentId) {
+        return subjectRepository.findSubjectsByStudentId(studentId);
+    }
+
     public Subject createSubject(Subject subject) {
         subject.setCreatedAt(LocalDateTime.now());
         subject.setUpdatedAt(LocalDateTime.now());

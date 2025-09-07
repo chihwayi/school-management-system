@@ -121,24 +121,22 @@ const StudentFinancePage: React.FC = () => {
                        {payment.term} - {payment.academicYear} ({payment.month})
                      </h3>
                      <p className="text-sm text-gray-600">
-                       Payment Date: {new Date(payment.paymentDate).toLocaleDateString()}
+                       Payment Date: {new Date(payment.date).toLocaleDateString()}
                      </p>
                      <p className="text-xs text-gray-500">
-                       Status: {payment.paymentStatus}
+                       Status: {payment.status?.replace('_', ' ') || 'Unknown'}
                      </p>
                    </div>
                    <div className="text-right">
                      <p className="font-medium text-green-600">
-                       ${payment.amountPaid.toFixed(2)}
+                       ${payment.amount?.toFixed(2) || '0.00'}
                      </p>
                      <p className="text-sm text-gray-600">
-                       Fee: ${payment.monthlyFeeAmount.toFixed(2)}
+                       {payment.term} - {payment.academicYear}
                      </p>
-                     {payment.balance > 0 && (
-                       <p className="text-sm text-red-600">
-                         Balance: ${payment.balance.toFixed(2)}
-                       </p>
-                     )}
+                     <p className="text-sm text-gray-600">
+                       {payment.status?.replace('_', ' ') || 'Unknown'}
+                     </p>
                    </div>
                  </div>
                ))}

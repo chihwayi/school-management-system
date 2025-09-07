@@ -14,6 +14,7 @@ import {
   User
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import StudentReports from '../../components/student/StudentReports';
 
 interface StudentInfo {
   id: number;
@@ -123,7 +124,6 @@ const StudentDashboard: React.FC = () => {
 
   const pendingAssignments = assignments.filter(a => a.status === 'pending');
   const overdueAssignments = assignments.filter(a => a.status === 'overdue');
-  const availableReports = reports.filter(r => r.canAccess);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -178,17 +178,6 @@ const StudentDashboard: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FileText className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Available Reports</p>
-                <p className="text-2xl font-bold text-gray-900">{availableReports.length}</p>
-              </div>
-            </div>
-          </Card>
 
           <Card className="p-6">
             <div className="flex items-center">
@@ -258,52 +247,6 @@ const StudentDashboard: React.FC = () => {
             )}
           </Card>
 
-          {/* Available Reports */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Available Reports</h2>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/student/reports')}
-              >
-                View All
-              </Button>
-            </div>
-            
-            {availableReports.length === 0 ? (
-              <div className="text-center py-4">
-                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500">No reports available</p>
-                {!studentInfo.feesPaid && (
-                  <p className="text-sm text-red-500 mt-2">
-                    Please pay your fees to access reports
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {availableReports.slice(0, 5).map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <h3 className="font-medium text-gray-900">
-                        {report.term} Report - {report.academicYear}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Overall Grade: {report.overallGrade}
-                      </p>
-                    </div>
-                    <Button 
-                      size="sm"
-                      onClick={() => navigate(`/student/reports/${report.id}`)}
-                    >
-                      View
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
         </div>
 
         {/* Financial Summary */}
@@ -436,6 +379,15 @@ const StudentDashboard: React.FC = () => {
           )}
         </Card>
 
+        {/* Student Reports Section */}
+        <div className="mt-8">
+          <StudentReports 
+            studentId={studentInfo.id}
+            studentName={studentInfo.name}
+            canAccessReports={financialData?.isFeesPaid && financialData?.totalBalance <= 0}
+          />
+        </div>
+
         {/* Quick Actions */}
         <Card className="p-6 mt-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -453,7 +405,7 @@ const StudentDashboard: React.FC = () => {
               variant="outline"
               className="h-16 flex flex-col items-center justify-center"
               onClick={() => navigate('/student/reports')}
-              disabled={!studentInfo.feesPaid}
+              disabled={!financialData?.isFeesPaid || financialData?.totalBalance > 0}
             >
               <FileText className="h-6 w-6 mb-2" />
               <span>View Reports</span>

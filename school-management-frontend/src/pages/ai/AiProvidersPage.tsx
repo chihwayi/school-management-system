@@ -39,17 +39,24 @@ const AiProvidersPage: React.FC = () => {
   const [availableModels, setAvailableModels] = useState<AiModel[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('openai');
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [currentProvider, setCurrentProvider] = useState<string>('');
+  const [currentModel, setCurrentModel] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProviderData = async () => {
       try {
-        const [status, models] = await Promise.all([
+        const [status, models, current] = await Promise.all([
           aiService.getProviderStatus(),
-          aiService.getAvailableModels()
+          aiService.getAvailableModels(),
+          aiService.getCurrentProvider()
         ]);
         setProviderStatus(status);
         setAvailableModels(models);
+        setCurrentProvider(current.provider);
+        setCurrentModel(current.model);
+        setSelectedProvider(current.provider);
+        setSelectedModel(current.model);
       } catch (error) {
         console.error('Failed to fetch provider data:', error);
       } finally {
@@ -63,6 +70,8 @@ const AiProvidersPage: React.FC = () => {
   const handleProviderSelect = async () => {
     try {
       await aiService.selectProvider(selectedProvider, selectedModel);
+      setCurrentProvider(selectedProvider);
+      setCurrentModel(selectedModel);
       alert('AI provider selected successfully!');
     } catch (error) {
       console.error('Failed to select provider:', error);
@@ -122,6 +131,30 @@ const AiProvidersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Current Selection */}
+      {currentProvider && currentModel && (
+        <Card className="p-6 bg-blue-50 border-blue-200">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              {getProviderIcon(currentProvider)}
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-blue-900">Currently Selected Model</h2>
+              <p className="text-blue-700">
+                <span className="font-medium">{currentProvider.replace('-', ' ').toUpperCase()}</span> - {currentModel}
+              </p>
+              <p className="text-sm text-blue-600">This model is currently being used for AI content generation</p>
+            </div>
+            <div className="ml-auto">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-6 w-6 text-green-500" />
+                <span className="text-sm font-medium text-green-700">Active</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Provider Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {Object.entries(providerStatus).map(([provider, status]) => (
@@ -153,6 +186,13 @@ const AiProvidersPage: React.FC = () => {
       {/* Provider Selection */}
       <Card className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Select AI Provider</h2>
+        {currentProvider && currentModel && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Current:</span> {currentProvider.replace('-', ' ').toUpperCase()} - {currentModel}
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

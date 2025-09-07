@@ -20,7 +20,8 @@ import {
     Plus,
     Copy,
     ChevronDown,
-    ChevronRight
+    ChevronRight,
+    Settings
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants';
@@ -89,6 +90,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             href: '/app/users',
             icon: Shield,
             current: location.pathname === '/app/users',
+            show: isAdmin()
+        },
+        {
+            name: 'AI Provider Config',
+            href: '/app/admin/ai-providers',
+            icon: Settings,
+            current: location.pathname === '/app/admin/ai-providers',
             show: isAdmin()
         },
         {
@@ -190,7 +198,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const visibleNavigation = navigation.filter(item => item.show);
 
     const SidebarContent = () => (
-        <div className="flex flex-col h-full bg-gray-900">
+        <div className="flex flex-col h-full max-h-screen bg-gray-900">
             {/* School Logo/Brand */}
             <div 
                 className="flex items-center justify-center h-16 px-4"
@@ -226,7 +234,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 py-4 space-y-1">
+            <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto sidebar-scroll">
                 {visibleNavigation.map((item) => (
                     <div key={item.name}>
                         {item.children ? (

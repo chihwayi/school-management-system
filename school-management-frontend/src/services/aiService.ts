@@ -214,6 +214,14 @@ export const aiService = {
     return response.data;
   },
 
+  getCurrentProvider: async (): Promise<{ provider: string; model: string }> => {
+    const response = await api.get('/ai/models/current');
+    return {
+      provider: response.data.provider || 'openai',
+      model: response.data.modelId || 'gpt-4o-mini'
+    };
+  },
+
   // AI Templates
   getTemplates: async (): Promise<any[]> => {
     const response = await api.get('/ai/templates');
