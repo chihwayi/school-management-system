@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # MySQL Database for Testing
+  mysql:
+    image: mysql:8.0
+    container_name: school_mysql_testing
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-school_management_system}
+      MYSQL_USER: ${MYSQL_USER:-school_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-school_password}
+    ports:
+      - "3306:3306"  # Exposed for testing team access
+    volumes:
+      - mysql_testing_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - school_testing_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Spring Boot Backend for Testing
+  backend:
+    build:
+      context: ./school-management-system
+      dockerfile: Dockerfile
+    container_name: school_backend_testing
+    restart: unless-stopped
+    env_file:
+      - env.testing
+    environment:
+      SPRING_PROFILES_ACTIVE: testing
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-school_management_system}?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-school_user}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-school_password}
+    ports:
+      - "8080:8080"  # Exposed for testing team access
+    volumes:
+      - backend_testing_uploads:/app/uploads
+      - ./logs/testing:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - school_testing_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # React Frontend for Testing
+  frontend:
+    build:
+      context: ./school-management-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8080/api
+    container_name: school_frontend_testing
+    restart: unless-stopped
+    ports:
+      - "3000:80"  # Exposed for testing team access
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - school_testing_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx Reverse Proxy for Testing (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: school_nginx_testing
+    restart: unless-stopped
+    ports:
+      - "80:80"   # HTTP for testing
+      - "443:443" # HTTPS for testing (if SSL configured)
+    volumes:
+      - ./nginx/nginx-testing.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx/testing:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - school_testing_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for Testing (Optional - for caching/sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: school_redis_testing
+    restart: unless-stopped
+    ports:
+      - "6379:6379"  # Exposed for testing team access
+    volumes:
+      - redis_testing_data:/data
+    networks:
+      - school_testing_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mailhog for Email Testing (Optional)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: school_mailhog_testing
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - school_testing_network
+
+volumes:
+  mysql_testing_data:
+    driver: local
+  backend_testing_uploads:
+    driver: local
+  redis_testing_data:
+    driver: local
+
+networks:
+  school_testing_network:
+    driver: bridge
