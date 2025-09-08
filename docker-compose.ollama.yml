@@ -1,0 +1,182 @@
+version: '3.8'
+
+services:
+  # Ollama for Local AI Models
+  ollama:
+    image: ollama/ollama:latest
+    container_name: school_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - school_network
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # Uncomment the following lines if you have NVIDIA GPU
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: school_mysql_ollama
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-school_management_system}
+      MYSQL_USER: ${MYSQL_USER:-school_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-school_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_ollama_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./school-management-system
+      dockerfile: Dockerfile
+    container_name: school_backend_ollama
+    restart: unless-stopped
+    env_file:
+      - env.testing
+    environment:
+      SPRING_PROFILES_ACTIVE: testing
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-school_management_system}?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-school_user}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-school_password}
+      # Ollama Configuration
+      AI_LOCAL_ENDPOINT: http://ollama:11434
+      AI_LOCAL_MODEL: llama3.2:3b
+      AI_DEFAULT_PROVIDER: local
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_ollama_uploads:/app/uploads
+      - ./logs/ollama:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./school-management-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8080/api
+    container_name: school_frontend_ollama
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: school_nginx_ollama
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-testing.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx/ollama:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for Caching (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: school_redis_ollama
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_ollama_data:/data
+    networks:
+      - school_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mailhog for Email Testing (Optional)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: school_mailhog_ollama
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - school_network
+
+volumes:
+  ollama_data:
+    driver: local
+  mysql_ollama_data:
+    driver: local
+  backend_ollama_uploads:
+    driver: local
+  redis_ollama_data:
+    driver: local
+
+networks:
+  school_network:
+    driver: bridge
