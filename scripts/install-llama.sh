@@ -111,9 +111,6 @@ install_ollama() {
     # Create systemd service
     if [[ $EUID -eq 0 ]]; then
         tee /etc/systemd/system/ollama.service > /dev/null <<EOF
-    else
-        sudo tee /etc/systemd/system/ollama.service > /dev/null <<EOF
-    fi
 [Unit]
 Description=Ollama Service
 After=network-online.target
@@ -130,6 +127,25 @@ Environment="OLLAMA_HOST=0.0.0.0:$OLLAMA_PORT"
 [Install]
 WantedBy=default.target
 EOF
+    else
+        sudo tee /etc/systemd/system/ollama.service > /dev/null <<EOF
+[Unit]
+Description=Ollama Service
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/ollama serve
+User=$OLLAMA_USER
+Group=$OLLAMA_USER
+Restart=always
+RestartSec=3
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="OLLAMA_HOST=0.0.0.0:$OLLAMA_PORT"
+
+[Install]
+WantedBy=default.target
+EOF
+    fi
 
     # Reload systemd and start Ollama
     if [[ $EUID -eq 0 ]]; then
