@@ -25,9 +25,10 @@ echo "=================================================="
 # Function to check if running as root
 check_root() {
     if [[ $EUID -eq 0 ]]; then
-        echo -e "${RED}❌ This script should not be run as root${NC}"
-        echo "Please run as a regular user with sudo privileges"
-        exit 1
+        echo -e "${YELLOW}⚠️  Running as root - this is fine for system-level installation${NC}"
+        echo "Installing Ollama system-wide..."
+    else
+        echo -e "${GREEN}✅ Running as regular user with sudo privileges${NC}"
     fi
 }
 
@@ -53,16 +54,31 @@ install_dependencies() {
     
     if command -v apt-get >/dev/null 2>&1; then
         # Ubuntu/Debian
-        sudo apt-get update
-        sudo apt-get install -y curl wget git build-essential
+        if [[ $EUID -eq 0 ]]; then
+            apt-get update
+            apt-get install -y curl wget git build-essential
+        else
+            sudo apt-get update
+            sudo apt-get install -y curl wget git build-essential
+        fi
     elif command -v yum >/dev/null 2>&1; then
         # CentOS/RHEL
-        sudo yum update -y
-        sudo yum install -y curl wget git gcc gcc-c++ make
+        if [[ $EUID -eq 0 ]]; then
+            yum update -y
+            yum install -y curl wget git gcc gcc-c++ make
+        else
+            sudo yum update -y
+            sudo yum install -y curl wget git gcc gcc-c++ make
+        fi
     elif command -v dnf >/dev/null 2>&1; then
         # Fedora
-        sudo dnf update -y
-        sudo dnf install -y curl wget git gcc gcc-c++ make
+        if [[ $EUID -eq 0 ]]; then
+            dnf update -y
+            dnf install -y curl wget git gcc gcc-c++ make
+        else
+            sudo dnf update -y
+            sudo dnf install -y curl wget git gcc gcc-c++ make
+        fi
     else
         echo -e "${YELLOW}⚠️  Please install curl, wget, and build tools manually${NC}"
     fi
@@ -85,11 +101,19 @@ install_ollama() {
     
     # Add ollama user if it doesn't exist
     if ! id "$OLLAMA_USER" &>/dev/null; then
-        sudo useradd -r -s /bin/false -m -d /usr/share/ollama "$OLLAMA_USER"
+        if [[ $EUID -eq 0 ]]; then
+            useradd -r -s /bin/false -m -d /usr/share/ollama "$OLLAMA_USER"
+        else
+            sudo useradd -r -s /bin/false -m -d /usr/share/ollama "$OLLAMA_USER"
+        fi
     fi
     
     # Create systemd service
-    sudo tee /etc/systemd/system/ollama.service > /dev/null <<EOF
+    if [[ $EUID -eq 0 ]]; then
+        tee /etc/systemd/system/ollama.service > /dev/null <<EOF
+    else
+        sudo tee /etc/systemd/system/ollama.service > /dev/null <<EOF
+    fi
 [Unit]
 Description=Ollama Service
 After=network-online.target
@@ -108,21 +132,37 @@ WantedBy=default.target
 EOF
 
     # Reload systemd and start Ollama
-    sudo systemctl daemon-reload
-    sudo systemctl enable ollama
-    sudo systemctl start ollama
+    if [[ $EUID -eq 0 ]]; then
+        systemctl daemon-reload
+        systemctl enable ollama
+        systemctl start ollama
+    else
+        sudo systemctl daemon-reload
+        sudo systemctl enable ollama
+        sudo systemctl start ollama
+    fi
     
     # Wait for Ollama to start
     echo "Waiting for Ollama to start..."
     sleep 10
     
     # Check if Ollama is running
-    if sudo systemctl is-active --quiet ollama; then
-        echo -e "${GREEN}✅ Ollama service started successfully${NC}"
+    if [[ $EUID -eq 0 ]]; then
+        if systemctl is-active --quiet ollama; then
+            echo -e "${GREEN}✅ Ollama service started successfully${NC}"
+        else
+            echo -e "${RED}❌ Failed to start Ollama service${NC}"
+            systemctl status ollama
+            exit 1
+        fi
     else
-        echo -e "${RED}❌ Failed to start Ollama service${NC}"
-        sudo systemctl status ollama
-        exit 1
+        if sudo systemctl is-active --quiet ollama; then
+            echo -e "${GREEN}✅ Ollama service started successfully${NC}"
+        else
+            echo -e "${RED}❌ Failed to start Ollama service${NC}"
+            sudo systemctl status ollama
+            exit 1
+        fi
     fi
 }
 
@@ -181,14 +221,23 @@ configure_firewall() {
     if command -v ufw >/dev/null 2>&1; then
         # Ubuntu/Debian UFW
         if ufw status | grep -q "Status: active"; then
-            sudo ufw allow $OLLAMA_PORT/tcp
+            if [[ $EUID -eq 0 ]]; then
+                ufw allow $OLLAMA_PORT/tcp
+            else
+                sudo ufw allow $OLLAMA_PORT/tcp
+            fi
             echo -e "${GREEN}✅ UFW rule added for port $OLLAMA_PORT${NC}"
         fi
     elif command -v firewall-cmd >/dev/null 2>&1; then
         # CentOS/RHEL Firewalld
         if systemctl is-active --quiet firewalld; then
-            sudo firewall-cmd --permanent --add-port=$OLLAMA_PORT/tcp
-            sudo firewall-cmd --reload
+            if [[ $EUID -eq 0 ]]; then
+                firewall-cmd --permanent --add-port=$OLLAMA_PORT/tcp
+                firewall-cmd --reload
+            else
+                sudo firewall-cmd --permanent --add-port=$OLLAMA_PORT/tcp
+                sudo firewall-cmd --reload
+            fi
             echo -e "${GREEN}✅ Firewalld rule added for port $OLLAMA_PORT${NC}"
         fi
     fi
@@ -219,10 +268,18 @@ show_usage() {
     echo "======================"
     echo ""
     echo -e "${GREEN}1. Start Ollama service:${NC}"
-    echo "   sudo systemctl start ollama"
+    if [[ $EUID -eq 0 ]]; then
+        echo "   systemctl start ollama"
+    else
+        echo "   sudo systemctl start ollama"
+    fi
     echo ""
     echo -e "${GREEN}2. Check Ollama status:${NC}"
-    echo "   sudo systemctl status ollama"
+    if [[ $EUID -eq 0 ]]; then
+        echo "   systemctl status ollama"
+    else
+        echo "   sudo systemctl status ollama"
+    fi
     echo ""
     echo -e "${GREEN}3. List available models:${NC}"
     echo "   ollama list"
